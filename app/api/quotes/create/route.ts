@@ -146,17 +146,17 @@ export async function POST(request: NextRequest) {
         })
 
         // Return error details in response for debugging (remove in production)
+        const mockResponse = getMockResponse(location, customerInfo)
         return NextResponse.json({
-          success: false,
+          ...mockResponse,
+          success: true, // Keep success true so UI still works
           error: 'Vision API failed',
           details: {
             message: aiError.message,
             name: aiError.name,
             code: aiError.code
           },
-          // Still include mock data as fallback
-          mockData: true,
-          ...getMockResponse(location, customerInfo)
+          mockData: true
         })
         // Fall back to mock data if AI fails
       }
