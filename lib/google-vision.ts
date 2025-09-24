@@ -98,6 +98,31 @@ export class VisionAIService {
     } else {
       throw new Error('Google Cloud credentials not configured')
     }
+
+    // Test the client can be created
+    console.log('Testing Vision API client...')
+    this.testConnection().catch(err => {
+      console.error('Vision API test failed:', err)
+    })
+  }
+
+  async testConnection() {
+    try {
+      // Try to make a simple API call to verify credentials work
+      const testImage = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64')
+      await this.client.annotateImage({
+        image: { content: testImage.toString('base64') },
+        features: [{ type: 'LABEL_DETECTION', maxResults: 1 }]
+      })
+      console.log('Vision API test successful!')
+    } catch (error: any) {
+      console.error('Vision API test failed:', {
+        message: error.message,
+        code: error.code,
+        details: error.details
+      })
+      throw error
+    }
   }
 
   async analyzeImage(imageBuffer: Buffer): Promise<{
@@ -212,9 +237,22 @@ export class VisionAIService {
         estimatedPrice,
         requiresSpecialHandling
       }
-    } catch (error) {
-      console.error('Google Vision API error:', error)
-      throw new Error('Failed to analyze image')
+    } catch (error: any) {
+      console.error('Google Vision API error:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        stack: error.stack
+      })
+
+      // Preserve the original error message and details
+      const errorMessage = error.message || 'Failed to analyze image'
+      const enhancedError = new Error(errorMessage)
+      ;(enhancedError as any).code = error.code
+      ;(enhancedError as any).details = error.details
+      ;(enhancedError as any).originalError = error
+
+      throw enhancedError
     }
   }
 

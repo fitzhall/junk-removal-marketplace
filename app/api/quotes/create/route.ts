@@ -93,7 +93,11 @@ export async function POST(request: NextRequest) {
         console.log('Attempting to use Google Vision API...')
         console.log('Using credentials:', {
           usingFile: !!process.env.GOOGLE_CLOUD_CREDENTIALS,
-          usingEnvVars: !!process.env.GOOGLE_CLOUD_PROJECT_ID
+          filePath: process.env.GOOGLE_CLOUD_CREDENTIALS,
+          usingEnvVars: !!process.env.GOOGLE_CLOUD_PROJECT_ID,
+          projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+          clientEmail: process.env.GOOGLE_CLOUD_CLIENT_EMAIL?.substring(0, 20) + '...',
+          hasPrivateKey: !!process.env.GOOGLE_CLOUD_PRIVATE_KEY
         })
         const visionService = new VisionAIService()
 
