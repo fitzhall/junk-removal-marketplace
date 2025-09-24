@@ -56,6 +56,21 @@ export default function QuoteForm() {
     setLoading(true)
 
     try {
+      // Check file sizes before uploading
+      const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB per file
+      const totalSize = photos.reduce((sum, photo) => sum + photo.size, 0)
+      const MAX_TOTAL_SIZE = 10 * 1024 * 1024 // 10MB total
+
+      if (photos.some(photo => photo.size > MAX_FILE_SIZE)) {
+        throw new Error(`One or more photos exceed 5MB. Please use smaller images.`)
+      }
+
+      if (totalSize > MAX_TOTAL_SIZE) {
+        throw new Error(`Total upload size (${(totalSize / 1024 / 1024).toFixed(1)}MB) exceeds 10MB limit.`)
+      }
+
+      console.log(`Uploading ${photos.length} photos, total size: ${(totalSize / 1024 / 1024).toFixed(2)}MB`)
+
       const formData = new FormData()
       photos.forEach((photo, index) => {
         formData.append(`photo_${index}`, photo)
