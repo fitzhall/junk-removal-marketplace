@@ -22,6 +22,7 @@
     "test:ci": "jest --ci --coverage"
   },
   "dependencies": {
+    "@google-cloud/vision": "^5.3.3",
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^3.3.4",
     "@prisma/client": "^5.8.1",
