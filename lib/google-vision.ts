@@ -65,19 +65,36 @@ export class VisionAIService {
 
   constructor() {
     // Initialize with service account credentials
+    console.log('VisionAIService initializing...')
+
     if (process.env.GOOGLE_CLOUD_CREDENTIALS) {
+      console.log('Using credentials file:', process.env.GOOGLE_CLOUD_CREDENTIALS)
       this.client = new ImageAnnotatorClient({
         keyFilename: process.env.GOOGLE_CLOUD_CREDENTIALS
       })
     } else if (process.env.GOOGLE_CLOUD_PROJECT_ID && process.env.GOOGLE_CLOUD_CLIENT_EMAIL && process.env.GOOGLE_CLOUD_PRIVATE_KEY) {
-      // Use individual env vars for Vercel
+      console.log('Using individual env vars for project:', process.env.GOOGLE_CLOUD_PROJECT_ID)
+
+      // Fix private key format - Vercel might escape newlines
+      const privateKey = process.env.GOOGLE_CLOUD_PRIVATE_KEY
+        .replace(/\\n/g, '\n')  // Replace escaped newlines
+        .replace(/\n\n/g, '\n') // Remove double newlines
+
+      // Ensure proper format
+      if (!privateKey.includes('-----BEGIN')) {
+        throw new Error('Invalid private key format - missing BEGIN marker')
+      }
+
       this.client = new ImageAnnotatorClient({
         projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
         credentials: {
+          type: 'service_account',
+          project_id: process.env.GOOGLE_CLOUD_PROJECT_ID,
           client_email: process.env.GOOGLE_CLOUD_CLIENT_EMAIL,
-          private_key: process.env.GOOGLE_CLOUD_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+          private_key: privateKey,
         }
       })
+      console.log('VisionAIService initialized with env vars')
     } else {
       throw new Error('Google Cloud credentials not configured')
     }

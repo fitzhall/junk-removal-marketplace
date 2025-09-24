@@ -2,6 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import { VisionAIService } from '@/lib/google-vision'
 // import { createClient } from '@/lib/supabase-server' // TODO: Enable when saving to database
 
+function getMockResponse(location: any, customerInfo: any) {
+  return {
+    success: true,
+    id: Math.random().toString(36).substring(7),
+    priceMin: 150,
+    priceMax: 250,
+    items: [
+      { type: 'Couch', quantity: 1, category: 'furniture', confidence: 95 },
+      { type: 'Mattress', quantity: 1, category: 'furniture', confidence: 88 },
+      { type: 'Boxes', quantity: 3, category: 'general', confidence: 92 }
+    ],
+    volume: 'HALF',
+    estimatedTime: '2-3 hours',
+    requiresSpecialHandling: false,
+    location,
+    customerInfo
+  }
+}
+
 export async function POST(request: NextRequest) {
   console.log('API Route: Quote create started')
   console.log('Request headers:', {
@@ -119,9 +138,25 @@ export async function POST(request: NextRequest) {
 
       } catch (aiError: any) {
         console.error('AI analysis failed, using mock data:', aiError)
-        console.error('Error details:', {
+        console.error('Full error details:', {
           message: aiError.message,
-          stack: aiError.stack?.substring(0, 500)
+          stack: aiError.stack,
+          name: aiError.name,
+          code: aiError.code
+        })
+
+        // Return error details in response for debugging (remove in production)
+        return NextResponse.json({
+          success: false,
+          error: 'Vision API failed',
+          details: {
+            message: aiError.message,
+            name: aiError.name,
+            code: aiError.code
+          },
+          // Still include mock data as fallback
+          mockData: true,
+          ...getMockResponse(location, customerInfo)
         })
         // Fall back to mock data if AI fails
       }
@@ -137,22 +172,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Mock response if Google Vision is not configured
-    const mockResponse = {
-      success: true,
-      id: Math.random().toString(36).substring(7),
-      priceMin: 150,
-      priceMax: 250,
-      items: [
-        { type: 'Couch', quantity: 1, category: 'furniture', confidence: 95 },
-        { type: 'Mattress', quantity: 1, category: 'furniture', confidence: 88 },
-        { type: 'Boxes', quantity: 3, category: 'general', confidence: 92 }
-      ],
-      volume: 'HALF',
-      estimatedTime: '2-3 hours',
-      requiresSpecialHandling: false,
-      location,
-      customerInfo
-    }
+    const mockResponse = getMockResponse(location, customerInfo)
 
     console.log('Returning mock response:', JSON.stringify(mockResponse, null, 2))
     return NextResponse.json(mockResponse, {

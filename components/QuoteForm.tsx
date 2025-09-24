@@ -182,10 +182,16 @@ export default function QuoteForm() {
         throw new Error(`Failed to parse server response as JSON: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`)
       }
 
+      // Check if Vision API failed and we got mock data
+      if (data.mockData) {
+        console.warn('Vision API failed, using mock data:', data.details)
+        setError(`Vision API Error: ${data.details?.message || 'Unknown error'}. Using mock data for demonstration.`)
+      }
+
       if (data.success && data.priceMin && data.priceMax) {
         setQuote(data)
         setStep(4)
-      } else {
+      } else if (!data.mockData) {
         console.error('Invalid response format:', data)
         // Show more detail about what's wrong
         const errorMsg = `Response missing required fields:
