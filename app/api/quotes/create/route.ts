@@ -63,9 +63,19 @@ export async function POST(request: NextRequest) {
     // Initialize Vision AI service if credentials are available
     let analysisResults = null
 
-    if (process.env.GOOGLE_CLOUD_PROJECT_ID) {
+    // Check for either credential file or individual env vars
+    const hasCredentials = process.env.GOOGLE_CLOUD_CREDENTIALS ||
+                          (process.env.GOOGLE_CLOUD_PROJECT_ID &&
+                           process.env.GOOGLE_CLOUD_CLIENT_EMAIL &&
+                           process.env.GOOGLE_CLOUD_PRIVATE_KEY)
+
+    if (hasCredentials) {
       try {
         console.log('Attempting to use Google Vision API...')
+        console.log('Using credentials:', {
+          usingFile: !!process.env.GOOGLE_CLOUD_CREDENTIALS,
+          usingEnvVars: !!process.env.GOOGLE_CLOUD_PROJECT_ID
+        })
         const visionService = new VisionAIService()
 
         // Analyze the first photo (you could analyze multiple and combine results)
@@ -117,6 +127,13 @@ export async function POST(request: NextRequest) {
       }
     } else {
       console.log('Google Cloud credentials not found, using mock data')
+      console.log('Credentials check:', {
+        hasCredentialsFile: !!process.env.GOOGLE_CLOUD_CREDENTIALS,
+        credentialsPath: process.env.GOOGLE_CLOUD_CREDENTIALS,
+        hasProjectId: !!process.env.GOOGLE_CLOUD_PROJECT_ID,
+        hasClientEmail: !!process.env.GOOGLE_CLOUD_CLIENT_EMAIL,
+        hasPrivateKey: !!process.env.GOOGLE_CLOUD_PRIVATE_KEY
+      })
     }
 
     // Mock response if Google Vision is not configured
