@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { TruckIcon, CameraIcon, CurrencyDollarIcon, ClockIcon, CheckCircleIcon, StarIcon } from '@heroicons/react/24/outline'
+import { TruckIcon, CameraIcon, CurrencyDollarIcon, CheckCircleIcon, StarIcon } from '@heroicons/react/24/outline'
 import QuoteForm from '@/components/QuoteForm'
 import { useState } from 'react'
 
@@ -286,7 +286,7 @@ export default function Home() {
                     <StarIcon key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
                   ))}
                 </div>
-                <p className="text-gray-700 mb-6 italic">"{testimonial.content}"</p>
+                <p className="text-gray-700 mb-6 italic">&ldquo;{testimonial.content}&rdquo;</p>
                 <div>
                   <p className="font-semibold">{testimonial.name}</p>
                   <p className="text-sm text-gray-500">{testimonial.role}</p>
@@ -310,7 +310,7 @@ export default function Home() {
               Ready to Clear Your Space?
             </h2>
             <p className="text-xl mb-8 opacity-90">
-              Join thousands who've simplified junk removal with AI
+              Join thousands who&apos;ve simplified junk removal with AI
             </p>
             <motion.div
               whileHover={{ scale: 1.05 }}

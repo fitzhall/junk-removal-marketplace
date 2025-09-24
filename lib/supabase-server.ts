@@ -19,7 +19,7 @@ export function createClient() {
             // Cookie operations can fail in Server Components
           }
         },
-        remove(name: string, options: CookieOptions) {
+        remove(name: string, _options: CookieOptions) {
           try {
             cookieStore.delete(name)
           } catch (error) {

@@ -28,7 +28,7 @@ export default function QuoteForm() {
     phone: ''
   })
   const [loading, setLoading] = useState(false)
-  const [quote, setQuote] = useState<any>(null)
+  const [quote, setQuote] = useState<{ priceMin: number; priceMax: number; items: Array<{ type: string; quantity: number }> } | null>(null)
 
   const steps = [
     { number: 1, title: 'Photos', icon: CameraIcon },
@@ -169,10 +169,10 @@ export default function QuoteForm() {
           >
             <div className="mb-8">
               <h2 className="text-3xl font-bold mb-3">
-                📍 Where's the Pickup?
+                📍 Where&apos;s the Pickup?
               </h2>
               <p className="text-gray-600 text-lg">
-                We'll match you with the best local providers in your area.
+                We&apos;ll match you with the best local providers in your area.
               </p>
             </div>
 
@@ -273,7 +273,7 @@ export default function QuoteForm() {
                 ✉️ Get Your Quote
               </h2>
               <p className="text-gray-600 text-lg">
-                We'll send your instant quote and connect you with providers.
+                We&apos;ll send your instant quote and connect you with providers.
               </p>
             </div>
 
@@ -402,7 +402,7 @@ export default function QuoteForm() {
               >
                 <h3 className="font-semibold text-lg mb-4">AI Detected Items:</h3>
                 <div className="space-y-3">
-                  {quote.items.map((item: any, index: number) => (
+                  {quote.items.map((item, index) => (
                     <div key={index} className="flex justify-between items-center p-4 bg-gray-50 rounded-xl">
                       <span className="font-medium">{item.type}</span>
                       <span className="text-gray-600">Qty: {item.quantity}</span>
