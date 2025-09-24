@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import imageCompression from 'browser-image-compression'
 import PhotoUpload from './PhotoUpload'
 import TestMode from './TestMode'
 import MobileHandoff from './MobileHandoff'
@@ -58,22 +59,43 @@ export default function QuoteForm() {
 
     try {
       // Check file sizes before uploading
-      const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB per file
       const totalSize = photos.reduce((sum, photo) => sum + photo.size, 0)
-      const MAX_TOTAL_SIZE = 10 * 1024 * 1024 // 10MB total
-
-      if (photos.some(photo => photo.size > MAX_FILE_SIZE)) {
-        throw new Error(`One or more photos exceed 5MB. Please use smaller images.`)
-      }
-
-      if (totalSize > MAX_TOTAL_SIZE) {
-        throw new Error(`Total upload size (${(totalSize / 1024 / 1024).toFixed(1)}MB) exceeds 10MB limit.`)
-      }
 
       console.log(`Uploading ${photos.length} photos, total size: ${(totalSize / 1024 / 1024).toFixed(2)}MB`)
 
+      // Compress images before upload to avoid Vercel's 4.5MB limit
+      const compressionOptions = {
+        maxSizeMB: 1,          // Max 1MB per image
+        maxWidthOrHeight: 1920, // Max dimension
+        useWebWorker: true,
+        fileType: 'image/jpeg'  // Convert to JPEG for better compression
+      }
+
+      console.log('Compressing images...')
+      const compressedPhotos = await Promise.all(
+        photos.map(async (photo, index) => {
+          try {
+            console.log(`Compressing photo ${index + 1}: ${photo.name} (${(photo.size / 1024 / 1024).toFixed(2)}MB)`)
+            const compressed = await imageCompression(photo, compressionOptions)
+            console.log(`Compressed photo ${index + 1}: ${compressed.name} (${(compressed.size / 1024 / 1024).toFixed(2)}MB)`)
+            return compressed
+          } catch (compressionError) {
+            console.error(`Failed to compress photo ${index + 1}, using original:`, compressionError)
+            return photo // Fall back to original if compression fails
+          }
+        })
+      )
+
+      const compressedTotalSize = compressedPhotos.reduce((sum, photo) => sum + photo.size, 0)
+      console.log(`Compressed total size: ${(compressedTotalSize / 1024 / 1024).toFixed(2)}MB (was ${(totalSize / 1024 / 1024).toFixed(2)}MB)`)
+
+      // Ensure compressed size is under Vercel's limit
+      if (compressedTotalSize > 4 * 1024 * 1024) { // 4MB to be safe (Vercel limit is 4.5MB)
+        throw new Error(`Images are too large even after compression (${(compressedTotalSize / 1024 / 1024).toFixed(1)}MB). Please use fewer or smaller images.`)
+      }
+
       const formData = new FormData()
-      photos.forEach((photo, index) => {
+      compressedPhotos.forEach((photo, index) => {
         formData.append(`photo_${index}`, photo)
       })
       formData.append('location', JSON.stringify(location))
