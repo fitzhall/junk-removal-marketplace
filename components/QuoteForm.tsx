@@ -7,6 +7,7 @@ import TestMode from './TestMode'
 import MobileHandoff from './MobileHandoff'
 import DebugPanel from './DebugPanel'
 import ErrorDisplay from './ErrorDisplay'
+import ApiTester from './ApiTester'
 import {
   MapPinIcon,
   UserIcon,
@@ -141,6 +142,7 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
       }} />
       <MobileHandoff />
       <DebugPanel />
+      <ApiTester />
       <ErrorDisplay error={error} onClose={() => setError(null)} />
 
       {/* Progress Steps */}
