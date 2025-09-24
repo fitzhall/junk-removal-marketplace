@@ -58,16 +58,26 @@ export default function QuoteForm() {
       formData.append('location', JSON.stringify(location))
       formData.append('customerInfo', JSON.stringify(customerInfo))
 
+      console.log('Submitting quote request...')
       const response = await fetch('/api/quotes/create', {
         method: 'POST',
         body: formData
       })
 
+      console.log('Response status:', response.status)
       const data = await response.json()
-      setQuote(data)
-      setStep(4)
+      console.log('Response data:', data)
+
+      if (data.success && data.priceMin && data.priceMax) {
+        setQuote(data)
+        setStep(4)
+      } else {
+        console.error('Invalid response format:', data)
+        alert('Error: ' + (data.error || 'Failed to generate quote. Please try again.'))
+      }
     } catch (error) {
       console.error('Error creating quote:', error)
+      alert('An error occurred. Please check the console for details.')
     } finally {
       setLoading(false)
     }
