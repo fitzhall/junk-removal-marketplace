@@ -4,6 +4,11 @@ import { VisionAIService } from '@/lib/google-vision'
 
 export async function POST(request: NextRequest) {
   console.log('API Route: Quote create started')
+  console.log('Request headers:', {
+    contentType: request.headers.get('content-type'),
+    userAgent: request.headers.get('user-agent'),
+    origin: request.headers.get('origin')
+  })
   console.log('Environment check:', {
     hasProjectId: !!process.env.GOOGLE_CLOUD_PROJECT_ID,
     hasClientEmail: !!process.env.GOOGLE_CLOUD_CLIENT_EMAIL,
@@ -29,12 +34,31 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Parse location and customer info
-    const locationStr = formData.get('location') as string
-    const customerInfoStr = formData.get('customerInfo') as string
+    // Parse location and customer info with better error handling
+    let location = {}
+    let customerInfo = {}
 
-    const location = locationStr ? JSON.parse(locationStr) : {}
-    const customerInfo = customerInfoStr ? JSON.parse(customerInfoStr) : {}
+    try {
+      const locationStr = formData.get('location') as string
+      if (locationStr) {
+        console.log('Parsing location:', locationStr)
+        location = JSON.parse(locationStr)
+      }
+    } catch (parseError) {
+      console.error('Failed to parse location:', parseError)
+      // Continue with empty location rather than failing
+    }
+
+    try {
+      const customerInfoStr = formData.get('customerInfo') as string
+      if (customerInfoStr) {
+        console.log('Parsing customerInfo:', customerInfoStr)
+        customerInfo = JSON.parse(customerInfoStr)
+      }
+    } catch (parseError) {
+      console.error('Failed to parse customerInfo:', parseError)
+      // Continue with empty customerInfo rather than failing
+    }
 
     // Initialize Vision AI service if credentials are available
     let analysisResults = null
@@ -76,7 +100,12 @@ export async function POST(request: NextRequest) {
         // const supabase = createClient()
         // await supabase.from('quotes').insert({...})
 
-        return NextResponse.json(response)
+        console.log('Returning AI analysis response:', JSON.stringify(response, null, 2))
+        return NextResponse.json(response, {
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
 
       } catch (aiError: any) {
         console.error('AI analysis failed, using mock data:', aiError)
@@ -108,7 +137,12 @@ export async function POST(request: NextRequest) {
       customerInfo
     }
 
-    return NextResponse.json(mockResponse)
+    console.log('Returning mock response:', JSON.stringify(mockResponse, null, 2))
+    return NextResponse.json(mockResponse, {
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
 
   } catch (error: any) {
     console.error('Error creating quote:', error)

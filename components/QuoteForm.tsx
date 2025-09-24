@@ -80,30 +80,84 @@ export default function QuoteForm() {
       formData.append('customerInfo', JSON.stringify(customerInfo))
 
       console.log('Submitting quote request...')
-      const response = await fetch('/api/quotes/create', {
-        method: 'POST',
-        body: formData
-      })
 
-      console.log('Response status:', response.status)
+      // Add timeout wrapper for mobile networks
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
 
-      // Get the raw response text first to see what we're dealing with
-      const responseText = await response.text()
-      console.log('Raw response:', responseText)
+      let response
+      try {
+        response = await fetch('/api/quotes/create', {
+          method: 'POST',
+          body: formData,
+          signal: controller.signal
+        })
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId)
 
-      // Check if response is ok
-      if (!response.ok) {
-        throw new Error(`Server error (${response.status}): ${responseText}`)
+        // Handle specific mobile network errors
+        if (fetchError.name === 'AbortError') {
+          throw new Error('Request timed out. Please check your internet connection and try again.')
+        } else if (fetchError.name === 'TypeError' && fetchError.message.includes('Failed to fetch')) {
+          throw new Error('Network error. Please check your internet connection and try again.')
+        } else {
+          throw new Error(`Failed to connect to server: ${fetchError.message}`)
+        }
+      } finally {
+        clearTimeout(timeoutId)
       }
 
-      // Try to parse JSON
+      console.log('Response status:', response.status)
+      console.log('Response headers:', {
+        contentType: response.headers.get('content-type'),
+        contentLength: response.headers.get('content-length')
+      })
+
+      // Check if response is ok BEFORE trying to read the body
+      if (!response.ok) {
+        let errorMessage = `Server error (${response.status})`
+        try {
+          const errorText = await response.text()
+          console.error('Error response text:', errorText)
+          errorMessage += `: ${errorText.substring(0, 500)}`
+        } catch (readError) {
+          console.error('Failed to read error response:', readError)
+          errorMessage += ': Unable to read error details'
+        }
+        throw new Error(errorMessage)
+      }
+
+      // Check if response is JSON before trying to parse
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('Invalid content-type:', contentType)
+        // Try to read the response for debugging
+        let responseText = ''
+        try {
+          responseText = await response.text()
+          console.error('Non-JSON response:', responseText.substring(0, 500))
+        } catch (readError) {
+          console.error('Failed to read response:', readError)
+        }
+        throw new Error(`Server returned non-JSON response. Content-Type: ${contentType}. Response preview: "${responseText.substring(0, 200)}..."`)
+      }
+
+      // Now safely parse JSON
       let data
       try {
+        const responseText = await response.text()
+        console.log('Raw response:', responseText)
+
+        // Handle empty response
+        if (!responseText || responseText.trim() === '') {
+          throw new Error('Server returned empty response')
+        }
+
         data = JSON.parse(responseText)
         console.log('Parsed response data:', JSON.stringify(data, null, 2))
       } catch (parseError) {
-        console.error('Failed to parse response as JSON:', responseText)
-        throw new Error(`Server returned invalid JSON. Response: "${responseText.substring(0, 500)}..."`)
+        console.error('JSON parse error:', parseError)
+        throw new Error(`Failed to parse server response as JSON: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`)
       }
 
       if (data.success && data.priceMin && data.priceMax) {
