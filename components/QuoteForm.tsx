@@ -71,14 +71,24 @@ export default function QuoteForm() {
 
       console.log('Response status:', response.status)
 
-      // Check if response is ok before trying to parse JSON
+      // Get the raw response text first to see what we're dealing with
+      const responseText = await response.text()
+      console.log('Raw response:', responseText)
+
+      // Check if response is ok
       if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(`Server error (${response.status}): ${errorText}`)
+        throw new Error(`Server error (${response.status}): ${responseText}`)
       }
 
-      const data = await response.json()
-      console.log('Response data:', JSON.stringify(data, null, 2))
+      // Try to parse JSON
+      let data
+      try {
+        data = JSON.parse(responseText)
+        console.log('Parsed response data:', JSON.stringify(data, null, 2))
+      } catch (parseError) {
+        console.error('Failed to parse response as JSON:', responseText)
+        throw new Error(`Server returned invalid JSON. Response: "${responseText.substring(0, 500)}..."`)
+      }
 
       if (data.success && data.priceMin && data.priceMax) {
         setQuote(data)
