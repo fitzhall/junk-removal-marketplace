@@ -6,6 +6,7 @@ import PhotoUpload from './PhotoUpload'
 import TestMode from './TestMode'
 import MobileHandoff from './MobileHandoff'
 import DebugPanel from './DebugPanel'
+import ErrorDisplay from './ErrorDisplay'
 import {
   MapPinIcon,
   UserIcon,
@@ -32,6 +33,7 @@ export default function QuoteForm() {
   })
   const [loading, setLoading] = useState(false)
   const [quote, setQuote] = useState<{ priceMin: number; priceMax: number; items: Array<{ type: string; quantity: number }> } | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const steps = [
     { number: 1, title: 'Photos', icon: CameraIcon },
@@ -68,6 +70,13 @@ export default function QuoteForm() {
       })
 
       console.log('Response status:', response.status)
+
+      // Check if response is ok before trying to parse JSON
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Server error (${response.status}): ${errorText}`)
+      }
+
       const data = await response.json()
       console.log('Response data:', JSON.stringify(data, null, 2))
 
@@ -76,11 +85,20 @@ export default function QuoteForm() {
         setStep(4)
       } else {
         console.error('Invalid response format:', data)
-        alert('Error: ' + (data.error || 'Failed to generate quote. Please try again.'))
+        // Show more detail about what's wrong
+        const errorMsg = `Response missing required fields:
+Success: ${data.success}
+PriceMin: ${data.priceMin}
+PriceMax: ${data.priceMax}
+Full response: ${JSON.stringify(data).substring(0, 200)}...`
+        setError(errorMsg)
       }
     } catch (error) {
       console.error('Error creating quote:', error)
-      alert('An error occurred. Please check the console for details.')
+      // Show the actual error message on mobile
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      // Don't use alert - use ErrorDisplay component instead
+      setError(errorMessage + '\n\n' + String(error).substring(0, 500))
     } finally {
       setLoading(false)
     }
@@ -98,6 +116,7 @@ export default function QuoteForm() {
       }} />
       <MobileHandoff />
       <DebugPanel />
+      <ErrorDisplay error={error} onClose={() => setError(null)} />
 
       {/* Progress Steps */}
       <div className="mb-12">
