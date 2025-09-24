@@ -3,6 +3,9 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import PhotoUpload from './PhotoUpload'
+import TestMode from './TestMode'
+import MobileHandoff from './MobileHandoff'
+import DebugPanel from './DebugPanel'
 import {
   MapPinIcon,
   UserIcon,
@@ -85,6 +88,17 @@ export default function QuoteForm() {
 
   return (
     <div className="max-w-4xl mx-auto">
+      {/* Helper Components */}
+      <TestMode onSelectTestImages={(files) => {
+        setPhotos(files)
+        if (files.length > 0 && step === 1) {
+          // Auto-advance to step 2 when test images are loaded
+          setStep(2)
+        }
+      }} />
+      <MobileHandoff />
+      <DebugPanel />
+
       {/* Progress Steps */}
       <div className="mb-12">
         <div className="flex items-center justify-between">
