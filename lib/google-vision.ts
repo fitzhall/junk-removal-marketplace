@@ -1,4 +1,4 @@
-import vision from '@google-cloud/vision'
+import { ImageAnnotatorClient } from '@google-cloud/vision'
 
 // Junk item categories with typical sizes and pricing
 const JUNK_CATEGORIES = {
@@ -61,17 +61,17 @@ interface DetectedItem {
 }
 
 export class VisionAIService {
-  private client: vision.ImageAnnotatorClient
+  private client: ImageAnnotatorClient
 
   constructor() {
     // Initialize with service account credentials
     if (process.env.GOOGLE_CLOUD_CREDENTIALS) {
-      this.client = new vision.ImageAnnotatorClient({
+      this.client = new ImageAnnotatorClient({
         keyFilename: process.env.GOOGLE_CLOUD_CREDENTIALS
       })
     } else if (process.env.GOOGLE_CLOUD_PROJECT_ID && process.env.GOOGLE_CLOUD_CLIENT_EMAIL && process.env.GOOGLE_CLOUD_PRIVATE_KEY) {
       // Use individual env vars for Vercel
-      this.client = new vision.ImageAnnotatorClient({
+      this.client = new ImageAnnotatorClient({
         projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
         credentials: {
           client_email: process.env.GOOGLE_CLOUD_CLIENT_EMAIL,
@@ -123,7 +123,7 @@ export class VisionAIService {
                   category: details.category,
                   basePrice: details.basePrice,
                   volume: details.volume,
-                  requiresSpecialHandling: details.special || false,
+                  requiresSpecialHandling: (details as any).special || false,
                   quantity: 1
                 })
               }
@@ -149,7 +149,7 @@ export class VisionAIService {
                   category: details.category,
                   basePrice: details.basePrice,
                   volume: details.volume,
-                  requiresSpecialHandling: details.special || false,
+                  requiresSpecialHandling: (details as any).special || false,
                   quantity: 1
                 })
               }

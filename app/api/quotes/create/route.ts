@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { VisionAIService } from '@/lib/google-vision'
-import { createClient } from '@/lib/supabase-server'
+// import { createClient } from '@/lib/supabase-server' // TODO: Enable when saving to database
 
 export async function POST(request: NextRequest) {
   try {
@@ -102,11 +102,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Configure max body size for file uploads
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
-  },
-}
+// Configure max body size for file uploads using Next.js 14 route segment config
+export const maxDuration = 30 // Maximum function execution time in seconds
+export const dynamic = 'force-dynamic' // Ensure this route is always dynamically rendered
