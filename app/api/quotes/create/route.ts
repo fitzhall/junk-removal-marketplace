@@ -3,6 +3,14 @@ import { VisionAIService } from '@/lib/google-vision'
 // import { createClient } from '@/lib/supabase-server' // TODO: Enable when saving to database
 
 export async function POST(request: NextRequest) {
+  console.log('API Route: Quote create started')
+  console.log('Environment check:', {
+    hasProjectId: !!process.env.GOOGLE_CLOUD_PROJECT_ID,
+    hasClientEmail: !!process.env.GOOGLE_CLOUD_CLIENT_EMAIL,
+    hasPrivateKey: !!process.env.GOOGLE_CLOUD_PRIVATE_KEY,
+    hasCredentialsPath: !!process.env.GOOGLE_CLOUD_CREDENTIALS
+  })
+
   try {
     const formData = await request.formData()
 
@@ -33,13 +41,16 @@ export async function POST(request: NextRequest) {
 
     if (process.env.GOOGLE_CLOUD_PROJECT_ID) {
       try {
+        console.log('Attempting to use Google Vision API...')
         const visionService = new VisionAIService()
 
         // Analyze the first photo (you could analyze multiple and combine results)
         const firstPhoto = photos[0]
         const buffer = Buffer.from(await firstPhoto.arrayBuffer())
+        console.log('Image buffer size:', buffer.length)
 
         analysisResults = await visionService.analyzeImage(buffer)
+        console.log('AI analysis results:', analysisResults)
 
         // Format the response with real AI analysis
         const response = {
@@ -47,14 +58,14 @@ export async function POST(request: NextRequest) {
           id: Math.random().toString(36).substring(7),
           priceMin: analysisResults.estimatedPrice.min,
           priceMax: analysisResults.estimatedPrice.max,
-          items: analysisResults.items.map(item => ({
+          items: analysisResults.items.map((item: any) => ({
             type: item.name.charAt(0).toUpperCase() + item.name.slice(1),
             quantity: item.quantity,
             confidence: Math.round(item.confidence * 100),
             category: item.category,
             requiresSpecialHandling: item.requiresSpecialHandling
           })),
-          volume: new VisionAIService().getTruckLoad(analysisResults.totalVolume),
+          volume: visionService.getTruckLoad(analysisResults.totalVolume), // Use existing instance
           totalVolume: analysisResults.totalVolume,
           requiresSpecialHandling: analysisResults.requiresSpecialHandling,
           location,
@@ -67,10 +78,16 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json(response)
 
-      } catch (aiError) {
+      } catch (aiError: any) {
         console.error('AI analysis failed, using mock data:', aiError)
+        console.error('Error details:', {
+          message: aiError.message,
+          stack: aiError.stack?.substring(0, 500)
+        })
         // Fall back to mock data if AI fails
       }
+    } else {
+      console.log('Google Cloud credentials not found, using mock data')
     }
 
     // Mock response if Google Vision is not configured
@@ -93,10 +110,20 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(mockResponse)
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating quote:', error)
+    console.error('Full error details:', {
+      message: error.message,
+      stack: error.stack?.substring(0, 500),
+      name: error.name
+    })
+
     return NextResponse.json(
-      { success: false, error: 'Failed to create quote' },
+      {
+        success: false,
+        error: error.message || 'Failed to create quote',
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     )
   }
