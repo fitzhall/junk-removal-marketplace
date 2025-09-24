@@ -5,7 +5,7 @@ import { WrenchScrewdriverIcon } from '@heroicons/react/24/outline'
 
 export default function ApiTester() {
   const [result, setResult] = useState<string>('')
-  const [loading, setLoading] = useState(false)
+  const [_loading, setLoading] = useState(false)
 
   const testApi = async () => {
     setLoading(true)

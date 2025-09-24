@@ -21,12 +21,7 @@
       }
     ],
     "@typescript-eslint/no-explicit-any": "warn",
-    "no-console": [
-      "warn",
-      {
-        "allow": ["warn", "error"]
-      }
-    ]
+    "no-console": "off"
   },
   "settings": {
     "react": {

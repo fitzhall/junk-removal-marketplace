@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
+  // eslint-disable-next-line no-console
   console.log('Test endpoint called')
   return NextResponse.json({
     success: true,
@@ -18,6 +19,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+    // eslint-disable-next-line no-console
     console.log('Test POST received:', body)
     return NextResponse.json({
       success: true,
