@@ -1,0 +1,274 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  CUSTOMER
+  PROVIDER
+  ADMIN
+}
+
+enum QuoteStatus {
+  DRAFT
+  PENDING
+  SENT
+  ACCEPTED
+  EXPIRED
+}
+
+enum JobStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum LeadStatus {
+  SENT
+  VIEWED
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+enum VolumeSize {
+  QUARTER
+  HALF
+  THREE_QUARTER
+  FULL
+  MULTIPLE
+}
+
+enum ProviderStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  phone         String?
+  name          String?
+  role          Role      @default(CUSTOMER)
+  emailVerified DateTime?
+  phoneVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  provider Provider?
+  quotes   Quote[]
+  events   AnalyticsEvent[]
+
+  @@index([email])
+  @@index([phone])
+  @@index([role])
+}
+
+model Provider {
+  id               String         @id @default(uuid())
+  userId           String         @unique
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessName     String
+  businessAddress  String?
+  businessPhone    String?
+  licenseNumber    String?
+  insuranceInfo    Json?
+  rating           Float          @default(0)
+  totalJobs        Int            @default(0)
+  status           ProviderStatus @default(PENDING)
+  paymentTerms     Json?
+  capabilities     Json?
+  operatingHours   Json?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  serviceAreas     ServiceArea[]
+  jobs             Job[]
+  leadDistribution LeadDistribution[]
+
+  @@index([status])
+  @@index([rating])
+}
+
+model ServiceArea {
+  id             String   @id @default(uuid())
+  providerId     String
+  provider       Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  zipCode        String
+  city           String
+  state          String
+  country        String   @default("US")
+  maxRadiusMiles Int      @default(25)
+  isPrimary      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@index([zipCode])
+  @@index([city, state])
+}
+
+model Quote {
+  id                 String      @id @default(uuid())
+  userId             String?
+  user               User?       @relation(fields: [userId], references: [id])
+  status             QuoteStatus @default(DRAFT)
+  customerName       String?
+  customerEmail      String?
+  customerPhone      String?
+  pickupAddress      String?
+  pickupZip          String?
+  pickupCity         String?
+  pickupState        String?
+  photoUrls          Json?
+  aiAnalysis         Json?
+  estimatedVolume    VolumeSize?
+  basePrice          Float?
+  additionalFees     Json?
+  totalPrice         Float?
+  priceRangeMin      Float?
+  priceRangeMax      Float?
+  preferredDate      DateTime?
+  preferredTimeWindow String?
+  isUrgent           Boolean     @default(false)
+  source             String?
+  utmParams          Json?
+  ipAddress          String?
+  userAgent          String?
+  createdAt          DateTime    @default(now())
+  expiresAt          DateTime    @default(dbgenerated("NOW() + INTERVAL '7 days'"))
+  updatedAt          DateTime    @updatedAt
+
+  items            QuoteItem[]
+  job              Job?
+  leadDistribution LeadDistribution[]
+
+  @@index([status])
+  @@index([userId])
+  @@index([pickupZip])
+  @@index([createdAt])
+}
+
+model QuoteItem {
+  id                     String   @id @default(uuid())
+  quoteId                String
+  quote                  Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  itemType               String
+  itemDescription        String?
+  quantity               Int      @default(1)
+  aiConfidence           Float?
+  requiresSpecialHandling Boolean  @default(false)
+  estimatedWeightLbs     Int?
+  dimensions             Json?
+  createdAt              DateTime @default(now())
+
+  @@index([quoteId])
+}
+
+model Job {
+  id                String    @id @default(uuid())
+  quoteId           String    @unique
+  quote             Quote     @relation(fields: [quoteId], references: [id])
+  providerId        String
+  provider          Provider  @relation(fields: [providerId], references: [id])
+  status            JobStatus @default(PENDING)
+  scheduledDate     DateTime?
+  scheduledTime     String?
+  actualStartTime   DateTime?
+  actualEndTime     DateTime?
+  finalPrice        Float?
+  providerPayout    Float?
+  platformFee       Float?
+  completionPhotos  Json?
+  customerSignature String?
+  notes             String?
+  customerRating    Int?
+  customerReview    String?
+  providerRating    Int?
+  providerFeedback  String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([status])
+  @@index([providerId])
+  @@index([scheduledDate])
+}
+
+model LeadDistribution {
+  id             String     @id @default(uuid())
+  quoteId        String
+  quote          Quote      @relation(fields: [quoteId], references: [id])
+  providerId     String
+  provider       Provider   @relation(fields: [providerId], references: [id])
+  status         LeadStatus @default(SENT)
+  sentAt         DateTime   @default(now())
+  viewedAt       DateTime?
+  respondedAt    DateTime?
+  responseReason String?
+  bidAmount      Float?
+  isWinner       Boolean    @default(false)
+  createdAt      DateTime   @default(now())
+
+  @@index([quoteId])
+  @@index([providerId])
+  @@index([status])
+}
+
+model PricingRule {
+  id                   String   @id @default(uuid())
+  name                 String
+  description          String?
+  zipCode              String?
+  city                 String?
+  state                String?
+  isDefault            Boolean  @default(false)
+  quarterTruckPrice    Float?
+  halfTruckPrice       Float?
+  threeQuarterTruckPrice Float?
+  fullTruckPrice       Float?
+  heavyItemFee         Float?
+  stairsFee            Float?
+  longCarryFee         Float?
+  sameDayFee           Float?
+  weekendFee           Float?
+  peakTimeMultiplier   Float    @default(1.0)
+  holidayMultiplier    Float    @default(1.5)
+  priority             Int      @default(0)
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([state, city, zipCode])
+  @@index([isActive, priority])
+}
+
+model AnalyticsEvent {
+  id         String   @id @default(uuid())
+  eventType  String
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  sessionId  String?
+  eventData  Json?
+  pageUrl    String?
+  referrer   String?
+  ipAddress  String?
+  userAgent  String?
+  deviceType String?
+  browser    String?
+  os         String?
+  country    String?
+  region     String?
+  city       String?
+  createdAt  DateTime @default(now())
+
+  @@index([eventType])
+  @@index([userId])
+  @@index([sessionId])
+  @@index([createdAt])
+}
