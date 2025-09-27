@@ -8,7 +8,7 @@ export async function GET(request: Request) {
 
     // Calculate date range
     const now = new Date()
-    let startDate = new Date()
+    const startDate = new Date()
 
     switch (timeRange) {
       case 'today':
@@ -25,13 +25,13 @@ export async function GET(request: Request) {
     // Fetch real data from database
     const [
       totalQuotes,
-      acceptedQuotes,
-      totalProviders,
+      ,// acceptedQuotes - unused
+      ,// totalProviders - unused
       activeProviders,
-      totalJobs,
+      ,// totalJobs - unused
       completedJobs,
       recentQuotes,
-      recentProviders
+      // recentProviders - unused
     ] = await Promise.all([
       // Total quotes
       prisma.quote.count({

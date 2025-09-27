@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     // TODO: Get the actual provider ID from session/auth
     // For now, we'll return aggregate stats for all providers
