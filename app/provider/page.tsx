@@ -144,10 +144,13 @@ export default function ProviderDashboard() {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-gray-900">Provider Dashboard</h1>
             <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">Demo Provider Account</span>
-              <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+              <div className="text-right">
+                <p className="text-sm text-gray-600">Professional Plan</p>
+                <p className="text-xs text-gray-500">7 credits remaining</p>
+              </div>
+              <a href="/provider/settings" className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
                 Settings
-              </button>
+              </a>
             </div>
           </div>
         </div>

@@ -3,6 +3,10 @@ import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 
 export async function middleware(request: NextRequest) {
+  // Temporarily disable auth middleware for development
+  return NextResponse.next()
+
+  /* Auth logic disabled for now
   const token = await getToken({ req: request })
   const path = request.nextUrl.pathname
 
@@ -30,6 +34,7 @@ export async function middleware(request: NextRequest) {
   }
 
   return NextResponse.next()
+  */
 }
 
 
