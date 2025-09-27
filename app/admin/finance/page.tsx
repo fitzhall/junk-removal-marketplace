@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   CurrencyDollarIcon,
@@ -19,122 +19,115 @@ import {
 interface Transaction {
   id: string
   date: string
-  type: 'subscription' | 'lead' | 'refund' | 'adjustment'
-  description: string
+  customer: string
   provider: string
   amount: number
+  commission: number
   status: 'completed' | 'pending' | 'failed'
+  type: 'job_completion' | 'subscription' | 'refund'
   method: string
 }
 
 interface Invoice {
   id: string
-  providerId: string
-  providerName: string
-  period: string
-  amount: number
-  status: 'paid' | 'pending' | 'overdue'
   dueDate: string
+  customer: string
+  provider: string
+  amount: number
+  status: 'pending' | 'overdue'
+  description: string
+}
+
+interface FinanceMetrics {
+  mrr: number
+  arr: number
+  totalRevenue: number
+  revenueGrowth: number
+  churnRate: number
+  ltv: number
+  cac: number
+  collectionRate: number
+}
+
+interface RevenueByTier {
+  elite: number
+  professional: number
+  basic: number
 }
 
 export default function AdminFinancePage() {
-  const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month' | 'year'>('month')
+  const [timeRange, setTimeRange] = useState<'week' | 'month' | 'quarter' | 'year'>('month')
   const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'invoices' | 'reports'>('overview')
+  const [loading, setLoading] = useState(true)
+  const [financialMetrics, setFinancialMetrics] = useState<FinanceMetrics>({
+    mrr: 0,
+    arr: 0,
+    totalRevenue: 0,
+    revenueGrowth: 0,
+    churnRate: 0,
+    ltv: 0,
+    cac: 0,
+    collectionRate: 0
+  })
+  const [revenueByTier, setRevenueByTier] = useState<RevenueByTier>({
+    elite: 0,
+    professional: 0,
+    basic: 0
+  })
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [invoices, setInvoices] = useState<Invoice[]>([])
 
-  // Mock financial data
-  const financialMetrics = {
-    mrr: 89244, // Monthly Recurring Revenue
-    arr: 1070928, // Annual Recurring Revenue
-    leadRevenue: 23450,
-    totalRevenue: 112694,
-    growth: 12.5,
-    churn: 2.3,
-    ltv: 4500, // Lifetime Value
-    cac: 150, // Customer Acquisition Cost
-    outstandingBalance: 4580,
-    refundsThisMonth: 1250
+  useEffect(() => {
+    fetchFinanceData()
+  }, [timeRange])
+
+  const fetchFinanceData = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/admin/finance?timeRange=${timeRange}`)
+      if (response.ok) {
+        const data = await response.json()
+        setFinancialMetrics(data.metrics || {
+          mrr: 0,
+          arr: 0,
+          totalRevenue: 0,
+          revenueGrowth: 0,
+          churnRate: 0,
+          ltv: 0,
+          cac: 0,
+          collectionRate: 0
+        })
+        setRevenueByTier(data.revenueByTier || {
+          elite: 0,
+          professional: 0,
+          basic: 0
+        })
+        setTransactions(data.transactions || [])
+        setInvoices(data.invoices || [])
+      }
+    } catch (error) {
+      console.error('Error fetching finance data:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  // Mock revenue breakdown
-  const revenueByTier = {
-    elite: { count: 12, revenue: 11988 },
-    professional: { count: 48, revenue: 28752 },
-    basic: { count: 96, revenue: 28704 }
-  }
-
-  // Mock transactions
-  const recentTransactions: Transaction[] = [
-    {
-      id: 'TXN-001',
-      date: '2024-01-27T10:30:00',
-      type: 'subscription',
-      description: 'Monthly subscription - Elite',
-      provider: 'JunkPro Services',
-      amount: 999,
-      status: 'completed',
-      method: 'Stripe'
-    },
-    {
-      id: 'TXN-002',
-      date: '2024-01-27T09:15:00',
-      type: 'lead',
-      description: '5 additional leads purchased',
-      provider: 'QuickHaul',
-      amount: 100,
-      status: 'completed',
-      method: 'Credit balance'
-    },
-    {
-      id: 'TXN-003',
-      date: '2024-01-27T08:00:00',
-      type: 'refund',
-      description: 'Lead refund - customer canceled',
-      provider: 'EcoJunk Removal',
-      amount: -25,
-      status: 'completed',
-      method: 'Credit added'
-    },
-    {
-      id: 'TXN-004',
-      date: '2024-01-26T16:45:00',
-      type: 'subscription',
-      description: 'Payment failed - Card declined',
-      provider: 'Fresh Start Hauling',
-      amount: 299,
-      status: 'failed',
-      method: 'Stripe'
-    }
-  ]
-
-  // Mock invoices
-  const pendingInvoices: Invoice[] = [
-    {
-      id: 'INV-001',
-      providerId: 'PRV-002',
-      providerName: 'QuickHaul',
-      period: 'January 2024',
-      amount: 750,
-      status: 'pending',
-      dueDate: '2024-02-01'
-    },
-    {
-      id: 'INV-002',
-      providerId: 'PRV-003',
-      providerName: 'EcoJunk Removal',
-      period: 'January 2024',
-      amount: 450,
-      status: 'overdue',
-      dueDate: '2024-01-25'
-    }
-  ]
 
   const getTransactionIcon = (type: string) => {
     switch (type) {
+      case 'job_completion': return <BanknotesIcon className="w-4 h-4" />
       case 'subscription': return <CreditCardIcon className="w-4 h-4" />
-      case 'lead': return <BanknotesIcon className="w-4 h-4" />
       case 'refund': return <ReceiptRefundIcon className="w-4 h-4" />
       default: return <CurrencyDollarIcon className="w-4 h-4" />
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-500">Loading finance data...</div>
+      </div>
+    )
   }
 
   const getStatusColor = (status: string) => {
@@ -175,12 +168,12 @@ export default function AdminFinancePage() {
             <div className="flex items-center gap-4">
               <select
                 value={timeRange}
-                onChange={(e) => setTimeRange(e.target.value as 'today' | 'week' | 'month' | 'year')}
+                onChange={(e) => setTimeRange(e.target.value as 'week' | 'month' | 'quarter' | 'year')}
                 className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="today">Today</option>
                 <option value="week">This Week</option>
                 <option value="month">This Month</option>
+                <option value="quarter">This Quarter</option>
                 <option value="year">This Year</option>
               </select>
               <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2">
@@ -202,9 +195,13 @@ export default function AdminFinancePage() {
           >
             <div className="flex items-center justify-between mb-4">
               <CurrencyDollarIcon className="w-8 h-8 text-green-600" />
-              <span className="flex items-center text-sm text-green-600">
-                <ArrowTrendingUpIcon className="w-4 h-4 mr-1" />
-                {financialMetrics.growth}%
+              <span className={`flex items-center text-sm ${financialMetrics.revenueGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {financialMetrics.revenueGrowth >= 0 ? (
+                  <ArrowTrendingUpIcon className="w-4 h-4 mr-1" />
+                ) : (
+                  <ArrowTrendingDownIcon className="w-4 h-4 mr-1" />
+                )}
+                {Math.abs(financialMetrics.revenueGrowth).toFixed(1)}%
               </span>
             </div>
             <p className="text-sm text-gray-600">Monthly Recurring Revenue</p>
@@ -220,14 +217,13 @@ export default function AdminFinancePage() {
           >
             <div className="flex items-center justify-between mb-4">
               <BanknotesIcon className="w-8 h-8 text-blue-600" />
-              <span className="flex items-center text-sm text-green-600">
-                <ArrowTrendingUpIcon className="w-4 h-4 mr-1" />
-                8.3%
+              <span className="text-sm text-gray-600">
+                LTV:CAC
               </span>
             </div>
-            <p className="text-sm text-gray-600">Lead Revenue</p>
-            <p className="text-3xl font-bold text-gray-900">${financialMetrics.leadRevenue.toLocaleString()}</p>
-            <p className="text-xs text-gray-500 mt-2">Pay-per-lead income</p>
+            <p className="text-sm text-gray-600">Customer LTV</p>
+            <p className="text-3xl font-bold text-gray-900">${financialMetrics.ltv.toLocaleString()}</p>
+            <p className="text-xs text-gray-500 mt-2">CAC: ${financialMetrics.cac.toLocaleString()}</p>
           </motion.div>
 
           <motion.div
@@ -240,12 +236,12 @@ export default function AdminFinancePage() {
               <ChartBarIcon className="w-8 h-8 text-purple-600" />
               <span className="flex items-center text-sm text-red-600">
                 <ArrowTrendingDownIcon className="w-4 h-4 mr-1" />
-                {financialMetrics.churn}%
+                {financialMetrics.churnRate.toFixed(1)}%
               </span>
             </div>
             <p className="text-sm text-gray-600">Churn Rate</p>
-            <p className="text-3xl font-bold text-gray-900">{financialMetrics.churn}%</p>
-            <p className="text-xs text-gray-500 mt-2">Monthly churn</p>
+            <p className="text-3xl font-bold text-gray-900">{financialMetrics.churnRate.toFixed(1)}%</p>
+            <p className="text-xs text-gray-500 mt-2">Provider churn</p>
           </motion.div>
 
           <motion.div
@@ -257,9 +253,9 @@ export default function AdminFinancePage() {
             <div className="flex items-center justify-between mb-4">
               <ExclamationTriangleIcon className="w-8 h-8 text-yellow-600" />
             </div>
-            <p className="text-sm text-gray-600">Outstanding</p>
-            <p className="text-3xl font-bold text-gray-900">${financialMetrics.outstandingBalance.toLocaleString()}</p>
-            <p className="text-xs text-gray-500 mt-2">3 overdue accounts</p>
+            <p className="text-sm text-gray-600">Collection Rate</p>
+            <p className="text-3xl font-bold text-gray-900">{financialMetrics.collectionRate.toFixed(1)}%</p>
+            <p className="text-xs text-gray-500 mt-2">{invoices.filter(i => i.status === 'overdue').length} overdue invoices</p>
           </motion.div>
         </div>
 
@@ -294,33 +290,48 @@ export default function AdminFinancePage() {
                     <div className="bg-purple-50 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-purple-700 font-medium">Elite</span>
-                        <span className="text-purple-900 font-bold">${revenueByTier.elite.revenue.toLocaleString()}</span>
+                        <span className="text-purple-900 font-bold">${revenueByTier.elite.toLocaleString()}</span>
                       </div>
-                      <p className="text-sm text-purple-600">{revenueByTier.elite.count} providers × $999</p>
+                      <p className="text-sm text-purple-600">Top tier providers</p>
                       <div className="mt-2 bg-purple-200 rounded-full h-2">
-                        <div className="bg-purple-600 h-2 rounded-full" style={{ width: '100%' }} />
+                        <div
+                          className="bg-purple-600 h-2 rounded-full"
+                          style={{
+                            width: `${(revenueByTier.elite / (revenueByTier.elite + revenueByTier.professional + revenueByTier.basic)) * 100}%`
+                          }}
+                        />
                       </div>
                     </div>
 
                     <div className="bg-blue-50 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-blue-700 font-medium">Professional</span>
-                        <span className="text-blue-900 font-bold">${revenueByTier.professional.revenue.toLocaleString()}</span>
+                        <span className="text-blue-900 font-bold">${revenueByTier.professional.toLocaleString()}</span>
                       </div>
-                      <p className="text-sm text-blue-600">{revenueByTier.professional.count} providers × $599</p>
+                      <p className="text-sm text-blue-600">Mid tier providers</p>
                       <div className="mt-2 bg-blue-200 rounded-full h-2">
-                        <div className="bg-blue-600 h-2 rounded-full" style={{ width: '85%' }} />
+                        <div
+                          className="bg-blue-600 h-2 rounded-full"
+                          style={{
+                            width: `${(revenueByTier.professional / (revenueByTier.elite + revenueByTier.professional + revenueByTier.basic)) * 100}%`
+                          }}
+                        />
                       </div>
                     </div>
 
                     <div className="bg-gray-50 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-gray-700 font-medium">Basic</span>
-                        <span className="text-gray-900 font-bold">${revenueByTier.basic.revenue.toLocaleString()}</span>
+                        <span className="text-gray-900 font-bold">${revenueByTier.basic.toLocaleString()}</span>
                       </div>
-                      <p className="text-sm text-gray-600">{revenueByTier.basic.count} providers × $299</p>
+                      <p className="text-sm text-gray-600">Entry tier providers</p>
                       <div className="mt-2 bg-gray-200 rounded-full h-2">
-                        <div className="bg-gray-600 h-2 rounded-full" style={{ width: '70%' }} />
+                        <div
+                          className="bg-gray-600 h-2 rounded-full"
+                          style={{
+                            width: `${(revenueByTier.basic / (revenueByTier.elite + revenueByTier.professional + revenueByTier.basic)) * 100}%`
+                          }}
+                        />
                       </div>
                     </div>
                   </div>
@@ -339,11 +350,13 @@ export default function AdminFinancePage() {
                       <p className="text-sm text-gray-600">CAC</p>
                     </div>
                     <div className="text-center p-4 bg-gray-50 rounded-lg">
-                      <p className="text-2xl font-bold text-gray-900">{(financialMetrics.ltv / financialMetrics.cac).toFixed(1)}x</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {financialMetrics.cac > 0 ? (financialMetrics.ltv / financialMetrics.cac).toFixed(1) : 'N/A'}x
+                      </p>
                       <p className="text-sm text-gray-600">LTV/CAC Ratio</p>
                     </div>
                     <div className="text-center p-4 bg-gray-50 rounded-lg">
-                      <p className="text-2xl font-bold text-gray-900">94%</p>
+                      <p className="text-2xl font-bold text-gray-900">{financialMetrics.collectionRate.toFixed(0)}%</p>
                       <p className="text-sm text-gray-600">Collection Rate</p>
                     </div>
                   </div>
@@ -361,31 +374,35 @@ export default function AdminFinancePage() {
                   </button>
                 </div>
                 <div className="space-y-3">
-                  {recentTransactions.map((transaction) => (
-                    <div key={transaction.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-4">
-                        <div className="p-2 bg-white rounded-lg">
-                          {getTransactionIcon(transaction.type)}
+                  {transactions.length === 0 ? (
+                    <p className="text-gray-500 text-sm text-center py-8">No transactions found</p>
+                  ) : (
+                    transactions.map((transaction) => (
+                      <div key={transaction.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2 bg-white rounded-lg">
+                            {getTransactionIcon(transaction.type)}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">{transaction.customer}</p>
+                            <p className="text-sm text-gray-600">{transaction.provider}</p>
+                            <p className="text-xs text-gray-500">
+                              {new Date(transaction.date).toLocaleString()}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{transaction.description}</p>
-                          <p className="text-sm text-gray-600">{transaction.provider}</p>
-                          <p className="text-xs text-gray-500">
-                            {new Date(transaction.date).toLocaleString()}
+                        <div className="text-right">
+                          <p className="text-lg font-semibold text-gray-900">
+                            ${transaction.amount.toLocaleString()}
                           </p>
+                          <p className="text-sm text-green-600">
+                            Commission: ${transaction.commission.toLocaleString()}
+                          </p>
+                          <p className="text-xs text-gray-500">{transaction.method}</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className={`text-lg font-semibold ${transaction.amount < 0 ? 'text-red-600' : 'text-gray-900'}`}>
-                          {transaction.amount < 0 ? '-' : '+'}${Math.abs(transaction.amount)}
-                        </p>
-                        <p className={`text-sm ${getStatusColor(transaction.status)}`}>
-                          {transaction.status}
-                        </p>
-                        <p className="text-xs text-gray-500">{transaction.method}</p>
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             )}
@@ -400,26 +417,31 @@ export default function AdminFinancePage() {
                   </button>
                 </div>
                 <div className="space-y-3">
-                  {pendingInvoices.map((invoice) => (
-                    <div key={invoice.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {invoice.providerName} - {invoice.period}
-                        </p>
-                        <p className="text-sm text-gray-600">Invoice #{invoice.id}</p>
-                        <p className="text-xs text-gray-500">Due: {invoice.dueDate}</p>
+                  {invoices.length === 0 ? (
+                    <p className="text-gray-500 text-sm text-center py-8">No pending invoices</p>
+                  ) : (
+                    invoices.map((invoice) => (
+                      <div key={invoice.id} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {invoice.customer}
+                          </p>
+                          <p className="text-sm text-gray-600">{invoice.provider}</p>
+                          <p className="text-xs text-gray-500">{invoice.description}</p>
+                          <p className="text-xs text-gray-500">Due: {new Date(invoice.dueDate).toLocaleDateString()}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-semibold text-gray-900">${invoice.amount.toLocaleString()}</p>
+                          <p className={`text-sm font-medium ${getStatusColor(invoice.status)}`}>
+                            {invoice.status}
+                          </p>
+                          <button className="text-blue-600 hover:text-blue-800 text-xs font-medium mt-1">
+                            Send Reminder
+                          </button>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-lg font-semibold text-gray-900">${invoice.amount}</p>
-                        <p className={`text-sm font-medium ${getStatusColor(invoice.status)}`}>
-                          {invoice.status}
-                        </p>
-                        <button className="text-blue-600 hover:text-blue-800 text-xs font-medium mt-1">
-                          Send Reminder
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             )}

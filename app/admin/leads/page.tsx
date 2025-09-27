@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   MagnifyingGlassIcon,
   CheckCircleIcon,
@@ -10,88 +10,94 @@ import {
 
 interface Lead {
   id: string
-  customerName: string
-  customerPhone: string
-  customerEmail: string
-  address: string
+  customer: {
+    name: string
+    phone: string
+    email: string
+  }
+  address: {
+    street: string
+    city: string
+    state: string
+    zip: string
+  }
   value: number
   status: 'new' | 'distributed' | 'accepted' | 'completed' | 'expired' | 'disputed'
-  urgency: 'low' | 'medium' | 'high'
-  createdAt: string
+  urgent: boolean
+  date: string
   distributedTo: number
-  acceptedBy: string | null
-  photoCount: number
-  itemCount: number
+  acceptedBy: {
+    name: string
+    rating: number
+    responseTime: string | null
+  } | null
+  photos: number
+  items: number
+  revenue: number
+  commission: number
+}
+
+interface LeadStats {
+  new: number
+  distributed: number
+  accepted: number
+  completed: number
+  expired: number
+  disputed: number
+  orphaned: number
+  avgResponseTime: string
+  todayRevenue: number
+  conversionRate: string
 }
 
 export default function AdminLeadsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [selectedLeads, setSelectedLeads] = useState<string[]>([])
+  const [leads, setLeads] = useState<Lead[]>([])
+  const [stats, setStats] = useState<LeadStats>({
+    new: 0,
+    distributed: 0,
+    accepted: 0,
+    completed: 0,
+    expired: 0,
+    disputed: 0,
+    orphaned: 0,
+    avgResponseTime: '0 min',
+    todayRevenue: 0,
+    conversionRate: '0%'
+  })
+  const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
 
-  // Mock leads data
-  const mockLeads: Lead[] = [
-    {
-      id: 'L-2024-001',
-      customerName: 'John Smith',
-      customerPhone: '415-555-0123',
-      customerEmail: 'john@email.com',
-      address: '123 Main St, San Francisco, CA 94102',
-      value: 450,
-      status: 'new',
-      urgency: 'high',
-      createdAt: '2024-01-27T10:30:00',
-      distributedTo: 0,
-      acceptedBy: null,
-      photoCount: 3,
-      itemCount: 5
-    },
-    {
-      id: 'L-2024-002',
-      customerName: 'Sarah Johnson',
-      customerPhone: '415-555-0124',
-      customerEmail: 'sarah@email.com',
-      address: '456 Oak Ave, Oakland, CA 94612',
-      value: 780,
-      status: 'distributed',
-      urgency: 'medium',
-      createdAt: '2024-01-27T09:15:00',
-      distributedTo: 3,
-      acceptedBy: null,
-      photoCount: 5,
-      itemCount: 8
-    },
-    {
-      id: 'L-2024-003',
-      customerName: 'Mike Chen',
-      customerPhone: '415-555-0125',
-      customerEmail: 'mike@email.com',
-      address: '789 Pine St, San Jose, CA 95110',
-      value: 1200,
-      status: 'accepted',
-      urgency: 'low',
-      createdAt: '2024-01-27T08:00:00',
-      distributedTo: 4,
-      acceptedBy: 'Provider #234',
-      photoCount: 7,
-      itemCount: 12
-    },
-    {
-      id: 'L-2024-004',
-      customerName: 'Emily Davis',
-      customerPhone: '415-555-0126',
-      customerEmail: 'emily@email.com',
-      address: '321 Elm St, Berkeley, CA 94704',
-      value: 320,
-      status: 'disputed',
-      urgency: 'high',
-      createdAt: '2024-01-26T16:45:00',
-      distributedTo: 2,
-      acceptedBy: 'Provider #156',
-      photoCount: 2,
-      itemCount: 3
+  useEffect(() => {
+    fetchLeads()
+  }, [searchTerm, statusFilter, page])
+
+  const fetchLeads = async () => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams({
+        search: searchTerm,
+        status: statusFilter,
+        page: page.toString(),
+        limit: '10'
+      })
+
+      const response = await fetch(`/api/admin/leads?${params}`)
+      if (response.ok) {
+        const data = await response.json()
+        setLeads(data.leads)
+        setStats(data.stats)
+        setTotalPages(data.pagination.pages)
+      }
+    } catch (error) {
+      console.error('Error fetching leads:', error)
+    } finally {
+      setLoading(false)
     }
-  ]
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -105,26 +111,34 @@ export default function AdminLeadsPage() {
     }
   }
 
-  const getUrgencyIcon = (urgency: string) => {
-    switch (urgency) {
-      case 'high': return <ExclamationTriangleIcon className="w-4 h-4 text-red-500" />
-      case 'medium': return <ClockIcon className="w-4 h-4 text-yellow-500" />
-      default: return <CheckCircleIcon className="w-4 h-4 text-green-500" />
+  const getUrgencyIcon = (urgent: boolean) => {
+    if (urgent) {
+      return <ExclamationTriangleIcon className="w-4 h-4 text-red-500" />
     }
+    return <CheckCircleIcon className="w-4 h-4 text-green-500" />
   }
-
-  const filteredLeads = mockLeads.filter(lead => {
-    const matchesSearch = lead.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         lead.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         lead.address.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || lead.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
 
   const handleBulkAction = (action: string) => {
     console.log(`Performing ${action} on leads:`, selectedLeads)
     // Implement bulk actions
     setSelectedLeads([])
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount)
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
   }
 
   return (
@@ -158,27 +172,27 @@ export default function AdminLeadsPage() {
         {/* Stats Bar */}
         <div className="grid grid-cols-6 gap-4 mb-6">
           <div className="bg-white rounded-lg p-4 text-center">
-            <p className="text-2xl font-bold text-blue-600">{mockLeads.filter(l => l.status === 'new').length}</p>
+            <p className="text-2xl font-bold text-blue-600">{stats.new}</p>
             <p className="text-sm text-gray-600">New</p>
           </div>
           <div className="bg-white rounded-lg p-4 text-center">
-            <p className="text-2xl font-bold text-purple-600">{mockLeads.filter(l => l.status === 'distributed').length}</p>
+            <p className="text-2xl font-bold text-purple-600">{stats.distributed}</p>
             <p className="text-sm text-gray-600">Distributed</p>
           </div>
           <div className="bg-white rounded-lg p-4 text-center">
-            <p className="text-2xl font-bold text-green-600">{mockLeads.filter(l => l.status === 'accepted').length}</p>
+            <p className="text-2xl font-bold text-green-600">{stats.accepted}</p>
             <p className="text-sm text-gray-600">Accepted</p>
           </div>
           <div className="bg-white rounded-lg p-4 text-center">
-            <p className="text-2xl font-bold text-gray-600">{mockLeads.filter(l => l.status === 'completed').length}</p>
+            <p className="text-2xl font-bold text-gray-600">{stats.completed}</p>
             <p className="text-sm text-gray-600">Completed</p>
           </div>
           <div className="bg-white rounded-lg p-4 text-center">
-            <p className="text-2xl font-bold text-yellow-600">{mockLeads.filter(l => l.status === 'expired').length}</p>
+            <p className="text-2xl font-bold text-yellow-600">{stats.expired}</p>
             <p className="text-sm text-gray-600">Expired</p>
           </div>
           <div className="bg-white rounded-lg p-4 text-center">
-            <p className="text-2xl font-bold text-red-600">{mockLeads.filter(l => l.status === 'disputed').length}</p>
+            <p className="text-2xl font-bold text-red-600">{stats.disputed}</p>
             <p className="text-sm text-gray-600">Disputed</p>
           </div>
         </div>
@@ -219,24 +233,26 @@ export default function AdminLeadsPage() {
               {/* Bulk Actions */}
               {selectedLeads.length > 0 && (
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">{selectedLeads.length} selected</span>
+                  <span className="text-sm text-gray-600">
+                    {selectedLeads.length} selected
+                  </span>
                   <button
-                    onClick={() => handleBulkAction('redistribute')}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                    onClick={() => handleBulkAction('distribute')}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                   >
-                    Redistribute
-                  </button>
-                  <button
-                    onClick={() => handleBulkAction('refund')}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
-                  >
-                    Refund Credits
+                    Distribute
                   </button>
                   <button
                     onClick={() => handleBulkAction('expire')}
-                    className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 text-sm font-medium"
+                    className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
                   >
                     Mark Expired
+                  </button>
+                  <button
+                    onClick={() => setSelectedLeads([])}
+                    className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
                   </button>
                 </div>
               )}
@@ -245,140 +261,185 @@ export default function AdminLeadsPage() {
 
           {/* Leads Table */}
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-4 py-3 text-left">
-                    <input
-                      type="checkbox"
-                      checked={selectedLeads.length === filteredLeads.length}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedLeads(filteredLeads.map(l => l.id))
-                        } else {
-                          setSelectedLeads([])
-                        }
-                      }}
-                    />
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lead ID</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Value</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Distribution</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredLeads.map((lead) => (
-                  <tr key={lead.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-4">
+            {loading ? (
+              <div className="p-8 text-center text-gray-500">Loading leads...</div>
+            ) : leads.length === 0 ? (
+              <div className="p-8 text-center text-gray-500">No leads found</div>
+            ) : (
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left">
                       <input
                         type="checkbox"
-                        checked={selectedLeads.includes(lead.id)}
+                        checked={selectedLeads.length === leads.length && leads.length > 0}
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setSelectedLeads([...selectedLeads, lead.id])
+                            setSelectedLeads(leads.map(l => l.id))
                           } else {
-                            setSelectedLeads(selectedLeads.filter(id => id !== lead.id))
+                            setSelectedLeads([])
                           }
                         }}
                       />
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        {getUrgencyIcon(lead.urgency)}
-                        <span className="font-medium text-gray-900">{lead.id}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div>
-                        <p className="font-medium text-gray-900">{lead.customerName}</p>
-                        <p className="text-sm text-gray-500">{lead.customerPhone}</p>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <p className="text-sm text-gray-900">{lead.address.split(',')[0]}</p>
-                      <p className="text-xs text-gray-500">{lead.address.split(',').slice(1).join(',')}</p>
-                    </td>
-                    <td className="px-4 py-4">
-                      <p className="font-semibold text-gray-900">${lead.value}</p>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(lead.status)}`}>
-                        {lead.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4">
-                      {lead.acceptedBy ? (
-                        <div>
-                          <p className="text-sm text-gray-900">{lead.acceptedBy}</p>
-                          <p className="text-xs text-gray-500">1 of {lead.distributedTo}</p>
-                        </div>
-                      ) : lead.distributedTo > 0 ? (
-                        <p className="text-sm text-gray-900">Sent to {lead.distributedTo}</p>
-                      ) : (
-                        <p className="text-sm text-gray-500">Not distributed</p>
-                      )}
-                    </td>
-                    <td className="px-4 py-4">
-                      <p className="text-sm text-gray-900">
-                        {new Date(lead.createdAt).toLocaleDateString()}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(lead.createdAt).toLocaleTimeString()}
-                      </p>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => console.log('View lead:', lead.id)}
-                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                        >
-                          View
-                        </button>
-                        {lead.status === 'new' && (
-                          <button className="text-green-600 hover:text-green-800 text-sm font-medium">
-                            Distribute
-                          </button>
-                        )}
-                        {lead.status === 'disputed' && (
-                          <button className="text-red-600 hover:text-red-800 text-sm font-medium">
-                            Resolve
-                          </button>
-                        )}
-                      </div>
-                    </td>
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lead ID</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Value</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Provider</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y">
+                  {leads.map((lead) => (
+                    <tr key={lead.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedLeads.includes(lead.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedLeads([...selectedLeads, lead.id])
+                            } else {
+                              setSelectedLeads(selectedLeads.filter(id => id !== lead.id))
+                            }
+                          }}
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          {getUrgencyIcon(lead.urgent)}
+                          <div>
+                            <p className="font-medium text-gray-900">{lead.id.slice(0, 8)}...</p>
+                            <p className="text-xs text-gray-500">{formatDate(lead.date)}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div>
+                          <p className="font-medium text-gray-900">{lead.customer.name}</p>
+                          <p className="text-sm text-gray-500">{lead.customer.phone}</p>
+                          {lead.customer.email && (
+                            <p className="text-xs text-gray-500">{lead.customer.email}</p>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div>
+                          <p className="text-sm text-gray-900">{lead.address.city}, {lead.address.state}</p>
+                          <p className="text-xs text-gray-500">{lead.address.zip}</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div>
+                          <p className="font-medium text-gray-900">{formatCurrency(lead.value)}</p>
+                          <p className="text-xs text-gray-500">
+                            {lead.items} items • {lead.photos} photos
+                          </p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(lead.status)}`}>
+                          {lead.status}
+                        </span>
+                        {lead.distributedTo > 0 && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Sent to {lead.distributedTo}
+                          </p>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {lead.acceptedBy ? (
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{lead.acceptedBy.name}</p>
+                            <p className="text-xs text-gray-500">
+                              ⭐ {lead.acceptedBy.rating.toFixed(1)} • {lead.acceptedBy.responseTime || 'Quick'}
+                            </p>
+                            {lead.revenue > 0 && (
+                              <p className="text-xs text-green-600 font-medium">
+                                Revenue: {formatCurrency(lead.commission)}
+                              </p>
+                            )}
+                          </div>
+                        ) : lead.distributedTo > 0 ? (
+                          <p className="text-sm text-gray-500">Pending acceptance</p>
+                        ) : (
+                          <p className="text-sm text-gray-400">Not distributed</p>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <button className="text-blue-600 hover:text-blue-800 text-sm">
+                            View
+                          </button>
+                          {lead.status === 'new' && (
+                            <button className="text-green-600 hover:text-green-800 text-sm">
+                              Distribute
+                            </button>
+                          )}
+                          {lead.status === 'disputed' && (
+                            <button className="text-red-600 hover:text-red-800 text-sm">
+                              Resolve
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="px-4 py-3 border-t flex items-center justify-between">
+              <button
+                onClick={() => setPage(Math.max(1, page - 1))}
+                disabled={page === 1}
+                className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-gray-600">
+                Page {page} of {totalPages}
+              </span>
+              <button
+                onClick={() => setPage(Math.min(totalPages, page + 1))}
+                disabled={page === totalPages}
+                className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Quick Stats Panel */}
-        <div className="grid grid-cols-4 gap-4">
-          <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="text-sm font-medium text-gray-600 mb-2">Orphaned Leads</h3>
-            <p className="text-2xl font-bold text-red-600">3</p>
-            <p className="text-xs text-gray-500 mt-1">Need manual distribution</p>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="text-sm font-medium text-gray-600 mb-2">Avg Response Time</h3>
-            <p className="text-2xl font-bold text-blue-600">12 min</p>
-            <p className="text-xs text-gray-500 mt-1">↓ 3 min from yesterday</p>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="text-sm font-medium text-gray-600 mb-2">Today's Revenue</h3>
-            <p className="text-2xl font-bold text-green-600">$1,847</p>
-            <p className="text-xs text-gray-500 mt-1">From 23 accepted leads</p>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="text-sm font-medium text-gray-600 mb-2">Conversion Rate</h3>
-            <p className="text-2xl font-bold text-purple-600">72%</p>
-            <p className="text-xs text-gray-500 mt-1">↑ 5% from last week</p>
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold mb-4">Quick Stats</h3>
+          <div className="grid grid-cols-4 gap-6">
+            <div>
+              <p className="text-sm text-gray-600">Orphaned Leads</p>
+              <p className="text-2xl font-bold text-red-600">{stats.orphaned}</p>
+              <p className="text-xs text-gray-500 mt-1">Need redistribution</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Avg Response Time</p>
+              <p className="text-2xl font-bold text-blue-600">{stats.avgResponseTime}</p>
+              <p className="text-xs text-gray-500 mt-1">Provider average</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Today's Revenue</p>
+              <p className="text-2xl font-bold text-green-600">{formatCurrency(stats.todayRevenue)}</p>
+              <p className="text-xs text-gray-500 mt-1">Platform fees</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Conversion Rate</p>
+              <p className="text-2xl font-bold text-purple-600">{stats.conversionRate}</p>
+              <p className="text-xs text-gray-500 mt-1">Accepted/Distributed</p>
+            </div>
           </div>
         </div>
       </div>

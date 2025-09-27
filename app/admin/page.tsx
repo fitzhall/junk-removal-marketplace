@@ -30,9 +30,13 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<any>({
     kpis: {
       totalRevenue: 0,
+      totalRevenueChange: 0,
       activeLeads: 0,
+      activeLeadsChange: 0,
       activeProviders: 0,
-      conversionRate: 0
+      activeProvidersChange: 0,
+      conversionRate: 0,
+      conversionRateChange: 0
     },
     leadFlow: {
       incoming: 0,
@@ -73,32 +77,32 @@ export default function AdminDashboard() {
     {
       title: 'Total Revenue',
       value: `$${stats.kpis.totalRevenue.toLocaleString()}`,
-      change: 12.5, // TODO: Calculate actual change
-      trend: 'up',
+      change: stats.kpis.totalRevenueChange || 0,
+      trend: (stats.kpis.totalRevenueChange || 0) >= 0 ? 'up' : 'down',
       icon: CurrencyDollarIcon,
       color: 'green'
     },
     {
       title: 'Active Leads',
       value: stats.kpis.activeLeads,
-      change: 8.3, // TODO: Calculate actual change
-      trend: 'up',
+      change: stats.kpis.activeLeadsChange || 0,
+      trend: (stats.kpis.activeLeadsChange || 0) >= 0 ? 'up' : 'down',
       icon: TruckIcon,
       color: 'blue'
     },
     {
       title: 'Active Providers',
       value: stats.kpis.activeProviders,
-      change: -2.1, // TODO: Calculate actual change
-      trend: 'down',
+      change: stats.kpis.activeProvidersChange || 0,
+      trend: (stats.kpis.activeProvidersChange || 0) >= 0 ? 'up' : 'down',
       icon: UsersIcon,
       color: 'purple'
     },
     {
       title: 'Conversion Rate',
       value: `${stats.kpis.conversionRate}%`,
-      change: 5.2, // TODO: Calculate actual change
-      trend: 'up',
+      change: stats.kpis.conversionRateChange || 0,
+      trend: (stats.kpis.conversionRateChange || 0) >= 0 ? 'up' : 'down',
       icon: ChartBarIcon,
       color: 'yellow'
     }

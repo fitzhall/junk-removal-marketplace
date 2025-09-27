@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   MagnifyingGlassIcon,
@@ -18,22 +18,31 @@ interface Provider {
   name: string
   email: string
   phone: string
-  company: string
-  tier: 'BASIC' | 'PROFESSIONAL' | 'ELITE'
-  status: 'pending' | 'active' | 'suspended'
-  joinedDate: string
-  serviceAreas: string[]
-  leadCredits: number
-  creditsUsed: number
-  totalLeads: number
-  acceptanceRate: number
-  avgResponseTime: number
+  status: 'active' | 'pending' | 'suspended'
+  tier: 'Elite' | 'Professional' | 'Basic'
   rating: number
+  serviceArea: string
+  totalJobs: number
+  completedJobs: number
+  leadCredits: number
+  acceptanceRate: number
+  responseTime: string
   revenue: number
-  balance: number
+  platformRevenue: number
   lastActive: string
-  autoBidEnabled: boolean
-  maxBidAmount: number
+  joinedDate: string
+  licenseNumber: string
+  activeLeads: number
+}
+
+interface ProviderStats {
+  total: number
+  active: number
+  pending: number
+  suspended: number
+  totalRevenue: number
+  avgAcceptanceRate: number
+  avgResponseTime: string
 }
 
 export default function AdminProvidersPage() {
@@ -41,104 +50,55 @@ export default function AdminProvidersPage() {
   const [tierFilter, setTierFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null)
+  const [providers, setProviders] = useState<Provider[]>([])
+  const [stats, setStats] = useState<ProviderStats>({
+    total: 0,
+    active: 0,
+    pending: 0,
+    suspended: 0,
+    totalRevenue: 0,
+    avgAcceptanceRate: 0,
+    avgResponseTime: '0 min'
+  })
+  const [loading, setLoading] = useState(true)
 
-  // Mock provider data
-  const mockProviders: Provider[] = [
-    {
-      id: 'PRV-001',
-      name: 'John Smith',
-      email: 'john@junkpro.com',
-      phone: '415-555-0123',
-      company: 'JunkPro Services',
-      tier: 'ELITE',
-      status: 'active',
-      joinedDate: '2024-01-15',
-      serviceAreas: ['San Francisco', 'Oakland', 'San Mateo'],
-      leadCredits: 32,
-      creditsUsed: 18,
-      totalLeads: 245,
-      acceptanceRate: 85,
-      avgResponseTime: 12,
-      rating: 4.8,
-      revenue: 45600,
-      balance: 0,
-      lastActive: '2 hours ago',
-      autoBidEnabled: true,
-      maxBidAmount: 75
-    },
-    {
-      id: 'PRV-002',
-      name: 'Sarah Johnson',
-      email: 'sarah@quickhaul.com',
-      phone: '415-555-0124',
-      company: 'QuickHaul',
-      tier: 'PROFESSIONAL',
-      status: 'active',
-      joinedDate: '2024-02-20',
-      serviceAreas: ['San Jose', 'Palo Alto'],
-      leadCredits: 12,
-      creditsUsed: 13,
-      totalLeads: 156,
-      acceptanceRate: 72,
-      avgResponseTime: 28,
-      rating: 4.6,
-      revenue: 28900,
-      balance: 250,
-      lastActive: '5 min ago',
-      autoBidEnabled: true,
-      maxBidAmount: 50
-    },
-    {
-      id: 'PRV-003',
-      name: 'Mike Chen',
-      email: 'mike@ecojunk.com',
-      phone: '415-555-0125',
-      company: 'EcoJunk Removal',
-      tier: 'BASIC',
-      status: 'suspended',
-      joinedDate: '2024-03-10',
-      serviceAreas: ['Berkeley'],
-      leadCredits: 2,
-      creditsUsed: 8,
-      totalLeads: 67,
-      acceptanceRate: 58,
-      avgResponseTime: 45,
-      rating: 4.2,
-      revenue: 12300,
-      balance: -150,
-      lastActive: '3 days ago',
-      autoBidEnabled: false,
-      maxBidAmount: 25
-    },
-    {
-      id: 'PRV-004',
-      name: 'Emily Davis',
-      email: 'emily@newprovider.com',
-      phone: '415-555-0126',
-      company: 'Fresh Start Hauling',
-      tier: 'BASIC',
-      status: 'pending',
-      joinedDate: '2024-03-27',
-      serviceAreas: ['Fremont', 'Hayward'],
-      leadCredits: 10,
-      creditsUsed: 0,
-      totalLeads: 0,
-      acceptanceRate: 0,
-      avgResponseTime: 0,
-      rating: 0,
-      revenue: 0,
-      balance: 0,
-      lastActive: 'Never',
-      autoBidEnabled: false,
-      maxBidAmount: 30
+  useEffect(() => {
+    fetchProviders()
+  }, [])
+
+  const fetchProviders = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch('/api/admin/providers')
+      if (response.ok) {
+        const data = await response.json()
+        setProviders(data.providers || [])
+        setStats(data.stats || {
+          total: 0,
+          active: 0,
+          pending: 0,
+          suspended: 0,
+          totalRevenue: 0,
+          avgAcceptanceRate: 0,
+          avgResponseTime: '0 min'
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching providers:', error)
+    } finally {
+      setLoading(false)
     }
+  }
+
+  // Mock provider data for reference - remove after testing
+  const mockProviders: Provider[] = [
   ]
 
   const getTierColor = (tier: string) => {
     switch (tier) {
-      case 'ELITE': return 'bg-purple-100 text-purple-800'
-      case 'PROFESSIONAL': return 'bg-blue-100 text-blue-800'
-      case 'BASIC': return 'bg-gray-100 text-gray-800'
+      case 'Elite': return 'bg-purple-100 text-purple-800'
+      case 'Professional': return 'bg-blue-100 text-blue-800'
+      case 'Basic': return 'bg-gray-100 text-gray-800'
       default: return 'bg-gray-100 text-gray-800'
     }
   }
@@ -152,16 +112,23 @@ export default function AdminProvidersPage() {
     }
   }
 
-  const filteredProviders = mockProviders.filter(provider => {
+  const filteredProviders = providers.filter(provider => {
     const matchesSearch = provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         provider.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          provider.email.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesTier = tierFilter === 'all' || provider.tier === tierFilter
     const matchesStatus = statusFilter === 'all' || provider.status === statusFilter
     return matchesSearch && matchesTier && matchesStatus
   })
 
-  const pendingProviders = mockProviders.filter(p => p.status === 'pending')
+  const pendingProviders = providers.filter(p => p.status === 'pending')
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-500">Loading providers...</div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -218,30 +185,30 @@ export default function AdminProvidersPage() {
         {/* Stats Overview */}
         <div className="grid grid-cols-5 gap-4 mb-6">
           <div className="bg-white rounded-lg p-4 text-center">
-            <p className="text-2xl font-bold text-gray-900">{mockProviders.length}</p>
+            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
             <p className="text-sm text-gray-600">Total Providers</p>
           </div>
           <div className="bg-white rounded-lg p-4 text-center">
             <p className="text-2xl font-bold text-green-600">
-              {mockProviders.filter(p => p.status === 'active').length}
+              {stats.active}
             </p>
             <p className="text-sm text-gray-600">Active</p>
           </div>
           <div className="bg-white rounded-lg p-4 text-center">
             <p className="text-2xl font-bold text-purple-600">
-              ${mockProviders.reduce((sum, p) => sum + p.revenue, 0).toLocaleString()}
+              ${stats.totalRevenue.toLocaleString()}
             </p>
             <p className="text-sm text-gray-600">Total Revenue</p>
           </div>
           <div className="bg-white rounded-lg p-4 text-center">
             <p className="text-2xl font-bold text-blue-600">
-              {Math.round(mockProviders.reduce((sum, p) => sum + p.acceptanceRate, 0) / mockProviders.length)}%
+              {stats.avgAcceptanceRate}%
             </p>
             <p className="text-sm text-gray-600">Avg Acceptance</p>
           </div>
           <div className="bg-white rounded-lg p-4 text-center">
             <p className="text-2xl font-bold text-orange-600">
-              {Math.round(mockProviders.reduce((sum, p) => sum + p.avgResponseTime, 0) / mockProviders.length)}m
+              {stats.avgResponseTime}
             </p>
             <p className="text-sm text-gray-600">Avg Response</p>
           </div>
@@ -270,9 +237,9 @@ export default function AdminProvidersPage() {
                 className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">All Tiers</option>
-                <option value="ELITE">Elite</option>
-                <option value="PROFESSIONAL">Professional</option>
-                <option value="BASIC">Basic</option>
+                <option value="Elite">Elite</option>
+                <option value="Professional">Professional</option>
+                <option value="Basic">Basic</option>
               </select>
 
               {/* Status Filter */}
@@ -310,7 +277,6 @@ export default function AdminProvidersPage() {
                     <td className="px-4 py-4">
                       <div>
                         <p className="font-medium text-gray-900">{provider.name}</p>
-                        <p className="text-sm text-gray-600">{provider.company}</p>
                         <p className="text-xs text-gray-500">{provider.email}</p>
                       </div>
                     </td>
@@ -325,12 +291,11 @@ export default function AdminProvidersPage() {
                       </span>
                     </td>
                     <td className="px-4 py-4">
-                      <p className="text-sm text-gray-900">{provider.serviceAreas.length} areas</p>
-                      <p className="text-xs text-gray-500">{provider.serviceAreas.slice(0, 2).join(', ')}</p>
+                      <p className="text-sm text-gray-900">{provider.serviceArea}</p>
                     </td>
                     <td className="px-4 py-4">
                       <p className="text-sm text-gray-900">{provider.leadCredits} left</p>
-                      <p className="text-xs text-gray-500">{provider.creditsUsed} used</p>
+                      <p className="text-xs text-gray-500">{provider.activeLeads} active</p>
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-4">
@@ -339,22 +304,18 @@ export default function AdminProvidersPage() {
                           <p className="text-xs text-gray-500">Accept</p>
                         </div>
                         <div>
-                          <p className="text-sm text-gray-900">{provider.avgResponseTime}m</p>
+                          <p className="text-sm text-gray-900">{provider.responseTime}</p>
                           <p className="text-xs text-gray-500">Response</p>
                         </div>
                         <div className="flex items-center gap-1">
                           <StarIcon className="w-4 h-4 text-yellow-500 fill-current" />
-                          <span className="text-sm text-gray-900">{provider.rating || 'N/A'}</span>
+                          <span className="text-sm text-gray-900">{provider.rating > 0 ? provider.rating : 'N/A'}</span>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-4">
                       <p className="text-sm font-medium text-gray-900">${provider.revenue.toLocaleString()}</p>
-                      {provider.balance !== 0 && (
-                        <p className={`text-xs ${provider.balance < 0 ? 'text-red-600' : 'text-gray-500'}`}>
-                          Balance: ${provider.balance}
-                        </p>
-                      )}
+                      <p className="text-xs text-gray-500">{provider.completedJobs} jobs</p>
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-2">
@@ -458,12 +419,8 @@ export default function AdminProvidersPage() {
                   <h3 className="font-semibold mb-4">Contact Information</h3>
                   <div className="space-y-3">
                     <div>
-                      <p className="text-sm text-gray-600">Name</p>
+                      <p className="text-sm text-gray-600">Business Name</p>
                       <p className="font-medium">{selectedProvider.name}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Company</p>
-                      <p className="font-medium">{selectedProvider.company}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Email</p>
@@ -472,6 +429,10 @@ export default function AdminProvidersPage() {
                     <div>
                       <p className="text-sm text-gray-600">Phone</p>
                       <p className="font-medium">{selectedProvider.phone}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">License Number</p>
+                      <p className="font-medium">{selectedProvider.licenseNumber || 'N/A'}</p>
                     </div>
                   </div>
                 </div>
@@ -497,7 +458,7 @@ export default function AdminProvidersPage() {
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Last Active</p>
-                      <p className="font-medium">{selectedProvider.lastActive}</p>
+                      <p className="font-medium">{new Date(selectedProvider.lastActive).toLocaleDateString()}</p>
                     </div>
                   </div>
                 </div>
@@ -505,8 +466,8 @@ export default function AdminProvidersPage() {
 
               <div className="mt-6 grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-gray-900">{selectedProvider.totalLeads}</p>
-                  <p className="text-sm text-gray-600">Total Leads</p>
+                  <p className="text-2xl font-bold text-gray-900">{selectedProvider.totalJobs}</p>
+                  <p className="text-sm text-gray-600">Total Jobs</p>
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-green-600">${selectedProvider.revenue.toLocaleString()}</p>
@@ -519,13 +480,11 @@ export default function AdminProvidersPage() {
               </div>
 
               <div className="mt-6">
-                <h3 className="font-semibold mb-3">Service Areas</h3>
+                <h3 className="font-semibold mb-3">Service Area</h3>
                 <div className="flex flex-wrap gap-2">
-                  {selectedProvider.serviceAreas.map((area) => (
-                    <span key={area} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
-                      {area}
-                    </span>
-                  ))}
+                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+                    {selectedProvider.serviceArea}
+                  </span>
                 </div>
               </div>
 

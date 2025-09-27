@@ -9,34 +9,52 @@ export async function GET(request: Request) {
     // Calculate date range
     const now = new Date()
     const startDate = new Date()
+    const previousPeriodStart = new Date()
 
     switch (timeRange) {
       case 'today':
         startDate.setHours(0, 0, 0, 0)
+        previousPeriodStart.setDate(now.getDate() - 1)
+        previousPeriodStart.setHours(0, 0, 0, 0)
         break
       case 'week':
         startDate.setDate(now.getDate() - 7)
+        previousPeriodStart.setDate(now.getDate() - 14)
         break
       case 'month':
         startDate.setMonth(now.getMonth() - 1)
+        previousPeriodStart.setMonth(now.getMonth() - 2)
         break
     }
 
     // Fetch real data from database
     const [
       totalQuotes,
+      previousTotalQuotes,
       ,// acceptedQuotes - unused
       ,// totalProviders - unused
       activeProviders,
+      previousActiveProviders,
       ,// totalJobs - unused
       completedJobs,
+      previousCompletedJobs,
       recentQuotes,
+      previousRecentQuotes,
       // recentProviders - unused
     ] = await Promise.all([
-      // Total quotes
+      // Total quotes (current period)
       prisma.quote.count({
         where: {
           createdAt: { gte: startDate }
+        }
+      }),
+      // Total quotes (previous period)
+      prisma.quote.count({
+        where: {
+          createdAt: {
+            gte: previousPeriodStart,
+            lt: startDate
+          }
         }
       }),
       // Accepted quotes
@@ -48,9 +66,16 @@ export async function GET(request: Request) {
       }),
       // Total providers
       prisma.provider.count(),
-      // Active providers
+      // Active providers (current)
       prisma.provider.count({
         where: { status: 'ACTIVE' }
+      }),
+      // Active providers (at start of period - approximation)
+      prisma.provider.count({
+        where: {
+          status: 'ACTIVE',
+          createdAt: { lt: startDate }
+        }
       }),
       // Total jobs
       prisma.job.count({
@@ -58,17 +83,40 @@ export async function GET(request: Request) {
           createdAt: { gte: startDate }
         }
       }),
-      // Completed jobs
+      // Completed jobs (current period)
       prisma.job.count({
         where: {
           status: 'COMPLETED',
           createdAt: { gte: startDate }
         }
       }),
-      // Recent quotes for revenue calculation
+      // Completed jobs (previous period)
+      prisma.job.count({
+        where: {
+          status: 'COMPLETED',
+          createdAt: {
+            gte: previousPeriodStart,
+            lt: startDate
+          }
+        }
+      }),
+      // Recent quotes for revenue calculation (current period)
       prisma.quote.findMany({
         where: {
           createdAt: { gte: startDate },
+          totalPrice: { not: null }
+        },
+        select: {
+          totalPrice: true
+        }
+      }),
+      // Recent quotes for revenue calculation (previous period)
+      prisma.quote.findMany({
+        where: {
+          createdAt: {
+            gte: previousPeriodStart,
+            lt: startDate
+          },
           totalPrice: { not: null }
         },
         select: {
@@ -84,11 +132,32 @@ export async function GET(request: Request) {
 
     // Calculate revenue
     const totalRevenue = recentQuotes.reduce((sum, quote) => sum + (quote.totalPrice || 0), 0)
+    const previousTotalRevenue = previousRecentQuotes.reduce((sum, quote) => sum + (quote.totalPrice || 0), 0)
 
     // Calculate conversion rate
     const conversionRate = totalQuotes > 0
       ? Math.round((completedJobs / totalQuotes) * 100)
       : 0
+    const previousConversionRate = previousTotalQuotes > 0
+      ? Math.round((previousCompletedJobs / previousTotalQuotes) * 100)
+      : 0
+
+    // Calculate percentage changes
+    const revenueChange = previousTotalRevenue > 0
+      ? ((totalRevenue - previousTotalRevenue) / previousTotalRevenue) * 100
+      : totalRevenue > 0 ? 100 : 0
+
+    const activeLeadsChange = previousTotalQuotes > 0
+      ? ((totalQuotes - previousTotalQuotes) / previousTotalQuotes) * 100
+      : totalQuotes > 0 ? 100 : 0
+
+    const activeProvidersChange = previousActiveProviders > 0
+      ? ((activeProviders - previousActiveProviders) / previousActiveProviders) * 100
+      : activeProviders > 0 ? 100 : 0
+
+    const conversionRateChange = previousConversionRate > 0
+      ? ((conversionRate - previousConversionRate) / previousConversionRate) * 100
+      : conversionRate > 0 ? 100 : 0
 
     // Get lead distribution stats
     const leadDistribution = await prisma.leadDistribution.groupBy({
@@ -145,9 +214,13 @@ export async function GET(request: Request) {
     const stats = {
       kpis: {
         totalRevenue,
+        totalRevenueChange: Math.round(revenueChange * 10) / 10,
         activeLeads: totalQuotes - completedJobs,
+        activeLeadsChange: Math.round(activeLeadsChange * 10) / 10,
         activeProviders,
-        conversionRate
+        activeProvidersChange: Math.round(activeProvidersChange * 10) / 10,
+        conversionRate,
+        conversionRateChange: Math.round(conversionRateChange * 10) / 10
       },
       leadFlow: {
         incoming: totalQuotes,
@@ -160,12 +233,26 @@ export async function GET(request: Request) {
         professional: providerTiers.find(p => p.status === 'PENDING')?._count || 0,
         basic: providerTiers.find(p => p.status === 'SUSPENDED')?._count || 0
       },
-      topAreas: topAreas.map(area => ({
-        city: area.pickupCity || 'Unknown',
-        leads: area._count,
-        providers: Math.floor(Math.random() * 20) + 5, // TODO: Get actual provider count by area
-        coverage: area._count > 20 ? 'excellent' : area._count > 10 ? 'good' : area._count > 5 ? 'low' : 'critical'
-      })),
+      topAreas: await Promise.all(
+        topAreas.map(async (area) => {
+          // Get actual provider count for this city
+          const providerCount = await prisma.serviceArea.count({
+            where: {
+              city: area.pickupCity || undefined,
+              provider: {
+                status: 'ACTIVE'
+              }
+            }
+          })
+
+          return {
+            city: area.pickupCity || 'Unknown',
+            leads: area._count,
+            providers: providerCount,
+            coverage: area._count > 20 ? 'excellent' : area._count > 10 ? 'good' : area._count > 5 ? 'low' : 'critical'
+          }
+        })
+      ),
       recentActivity: recentActivity.map(quote => ({
         type: 'lead',
         message: `New $${quote.totalPrice || 0} lead in ${quote.pickupCity || 'Unknown'}`,
@@ -191,6 +278,7 @@ function getRelativeTime(date: Date): string {
   const hours = Math.floor(diff / 3600000)
   const days = Math.floor(diff / 86400000)
 
+  if (minutes < 1) return 'just now'
   if (minutes < 60) return `${minutes} min ago`
   if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`
   return `${days} day${days > 1 ? 's' : ''} ago`
