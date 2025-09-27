@@ -7,6 +7,8 @@ export async function GET() {
     environment: process.env.NODE_ENV,
     database_url_exists: !!process.env.DATABASE_URL,
     direct_url_exists: !!process.env.DIRECT_URL,
+    database_url_preview: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 50) + '...' : 'Not set',
+    direct_url_preview: process.env.DIRECT_URL ? process.env.DIRECT_URL.substring(0, 50) + '...' : 'Not set',
   }
 
   try {

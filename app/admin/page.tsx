@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   ChartBarIcon,
@@ -26,74 +26,82 @@ interface KPICard {
 
 export default function AdminDashboard() {
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month'>('today')
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState<any>({
+    kpis: {
+      totalRevenue: 0,
+      activeLeads: 0,
+      activeProviders: 0,
+      conversionRate: 0
+    },
+    leadFlow: {
+      incoming: 0,
+      distributed: 0,
+      accepted: 0,
+      completed: 0
+    },
+    providerTiers: {
+      elite: 0,
+      professional: 0,
+      basic: 0
+    },
+    topAreas: [],
+    recentActivity: []
+  })
 
-  // Mock KPI data
+  useEffect(() => {
+    fetchStats()
+  }, [timeRange])
+
+  const fetchStats = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/admin/stats?timeRange=${timeRange}`)
+      if (response.ok) {
+        const data = await response.json()
+        setStats(data)
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Convert stats to KPI cards
   const kpis: KPICard[] = [
     {
       title: 'Total Revenue',
-      value: '$12,847',
-      change: 12.5,
+      value: `$${stats.kpis.totalRevenue.toLocaleString()}`,
+      change: 12.5, // TODO: Calculate actual change
       trend: 'up',
       icon: CurrencyDollarIcon,
       color: 'green'
     },
     {
       title: 'Active Leads',
-      value: 47,
-      change: 8.3,
+      value: stats.kpis.activeLeads,
+      change: 8.3, // TODO: Calculate actual change
       trend: 'up',
       icon: TruckIcon,
       color: 'blue'
     },
     {
       title: 'Active Providers',
-      value: 156,
-      change: -2.1,
+      value: stats.kpis.activeProviders,
+      change: -2.1, // TODO: Calculate actual change
       trend: 'down',
       icon: UsersIcon,
       color: 'purple'
     },
     {
       title: 'Conversion Rate',
-      value: '68%',
-      change: 5.2,
+      value: `${stats.kpis.conversionRate}%`,
+      change: 5.2, // TODO: Calculate actual change
       trend: 'up',
       icon: ChartBarIcon,
       color: 'yellow'
     }
-  ]
-
-  // Mock lead flow data
-  const leadFlow = {
-    incoming: 124,
-    distributed: 118,
-    accepted: 89,
-    completed: 72
-  }
-
-  // Mock provider tiers
-  const providerTiers = {
-    elite: 12,
-    professional: 48,
-    basic: 96
-  }
-
-  // Mock recent activity
-  const recentActivity = [
-    { type: 'lead', message: 'New $450 lead in San Francisco', time: '2 min ago', urgent: true },
-    { type: 'provider', message: 'Provider #234 upgraded to Professional', time: '15 min ago', urgent: false },
-    { type: 'alert', message: 'Low coverage in Oakland area', time: '1 hour ago', urgent: true },
-    { type: 'payment', message: 'Payment failed for Provider #156', time: '2 hours ago', urgent: true },
-    { type: 'lead', message: '5 leads distributed in San Jose', time: '3 hours ago', urgent: false }
-  ]
-
-  // Mock geographic data
-  const topAreas = [
-    { city: 'San Francisco', leads: 45, providers: 23, coverage: 'good' },
-    { city: 'Oakland', leads: 32, providers: 8, coverage: 'low' },
-    { city: 'San Jose', leads: 28, providers: 15, coverage: 'good' },
-    { city: 'Berkeley', leads: 18, providers: 12, coverage: 'excellent' },
-    { city: 'Palo Alto', leads: 12, providers: 3, coverage: 'critical' }
   ]
 
   const getCoverageColor = (coverage: string) => {
@@ -104,6 +112,14 @@ export default function AdminDashboard() {
       case 'critical': return 'text-red-600 bg-red-100'
       default: return 'text-gray-600 bg-gray-100'
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-500">Loading dashboard...</div>
+      </div>
+    )
   }
 
   return (
@@ -201,22 +217,22 @@ export default function AdminDashboard() {
             <h2 className="text-lg font-semibold mb-4">Lead Flow Pipeline</h2>
             <div className="flex items-center justify-between mb-6">
               <div className="flex-1 text-center">
-                <p className="text-3xl font-bold text-blue-600">{leadFlow.incoming}</p>
+                <p className="text-3xl font-bold text-blue-600">{stats.leadFlow.incoming}</p>
                 <p className="text-sm text-gray-600 mt-1">Incoming</p>
               </div>
               <ChevronRight className="w-6 h-6 text-gray-400" />
               <div className="flex-1 text-center">
-                <p className="text-3xl font-bold text-purple-600">{leadFlow.distributed}</p>
+                <p className="text-3xl font-bold text-purple-600">{stats.leadFlow.distributed}</p>
                 <p className="text-sm text-gray-600 mt-1">Distributed</p>
               </div>
               <ChevronRight className="w-6 h-6 text-gray-400" />
               <div className="flex-1 text-center">
-                <p className="text-3xl font-bold text-green-600">{leadFlow.accepted}</p>
+                <p className="text-3xl font-bold text-green-600">{stats.leadFlow.accepted}</p>
                 <p className="text-sm text-gray-600 mt-1">Accepted</p>
               </div>
               <ChevronRight className="w-6 h-6 text-gray-400" />
               <div className="flex-1 text-center">
-                <p className="text-3xl font-bold text-gray-900">{leadFlow.completed}</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.leadFlow.completed}</p>
                 <p className="text-sm text-gray-600 mt-1">Completed</p>
               </div>
             </div>
@@ -225,15 +241,27 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-3 gap-4 pt-4 border-t">
               <div>
                 <p className="text-sm text-gray-600">Distribution Rate</p>
-                <p className="text-lg font-semibold">{Math.round((leadFlow.distributed / leadFlow.incoming) * 100)}%</p>
+                <p className="text-lg font-semibold">
+                  {stats.leadFlow.incoming > 0
+                    ? Math.round((stats.leadFlow.distributed / stats.leadFlow.incoming) * 100)
+                    : 0}%
+                </p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Acceptance Rate</p>
-                <p className="text-lg font-semibold">{Math.round((leadFlow.accepted / leadFlow.distributed) * 100)}%</p>
+                <p className="text-lg font-semibold">
+                  {stats.leadFlow.distributed > 0
+                    ? Math.round((stats.leadFlow.accepted / stats.leadFlow.distributed) * 100)
+                    : 0}%
+                </p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Completion Rate</p>
-                <p className="text-lg font-semibold">{Math.round((leadFlow.completed / leadFlow.accepted) * 100)}%</p>
+                <p className="text-lg font-semibold">
+                  {stats.leadFlow.accepted > 0
+                    ? Math.round((stats.leadFlow.completed / stats.leadFlow.accepted) * 100)
+                    : 0}%
+                </p>
               </div>
             </div>
           </div>
@@ -244,48 +272,66 @@ export default function AdminDashboard() {
             <div className="space-y-4">
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Elite</span>
-                  <span className="text-sm text-gray-600">{providerTiers.elite} providers</span>
+                  <span className="text-sm font-medium text-gray-700">Active</span>
+                  <span className="text-sm text-gray-600">{stats.providerTiers.elite} providers</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
                     className="bg-purple-600 h-2 rounded-full"
-                    style={{ width: `${(providerTiers.elite / (providerTiers.elite + providerTiers.professional + providerTiers.basic)) * 100}%` }}
+                    style={{
+                      width: `${
+                        (stats.providerTiers.elite + stats.providerTiers.professional + stats.providerTiers.basic) > 0
+                          ? (stats.providerTiers.elite / (stats.providerTiers.elite + stats.providerTiers.professional + stats.providerTiers.basic)) * 100
+                          : 0
+                      }%`
+                    }}
                   />
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Professional</span>
-                  <span className="text-sm text-gray-600">{providerTiers.professional} providers</span>
+                  <span className="text-sm font-medium text-gray-700">Pending</span>
+                  <span className="text-sm text-gray-600">{stats.providerTiers.professional} providers</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
                     className="bg-blue-600 h-2 rounded-full"
-                    style={{ width: `${(providerTiers.professional / (providerTiers.elite + providerTiers.professional + providerTiers.basic)) * 100}%` }}
+                    style={{
+                      width: `${
+                        (stats.providerTiers.elite + stats.providerTiers.professional + stats.providerTiers.basic) > 0
+                          ? (stats.providerTiers.professional / (stats.providerTiers.elite + stats.providerTiers.professional + stats.providerTiers.basic)) * 100
+                          : 0
+                      }%`
+                    }}
                   />
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Basic</span>
-                  <span className="text-sm text-gray-600">{providerTiers.basic} providers</span>
+                  <span className="text-sm font-medium text-gray-700">Suspended</span>
+                  <span className="text-sm text-gray-600">{stats.providerTiers.basic} providers</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
                     className="bg-gray-600 h-2 rounded-full"
-                    style={{ width: `${(providerTiers.basic / (providerTiers.elite + providerTiers.professional + providerTiers.basic)) * 100}%` }}
+                    style={{
+                      width: `${
+                        (stats.providerTiers.elite + stats.providerTiers.professional + stats.providerTiers.basic) > 0
+                          ? (stats.providerTiers.basic / (stats.providerTiers.elite + stats.providerTiers.professional + stats.providerTiers.basic)) * 100
+                          : 0
+                      }%`
+                    }}
                   />
                 </div>
               </div>
             </div>
 
             <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-900 font-medium">Monthly Recurring Revenue</p>
+              <p className="text-sm text-blue-900 font-medium">Total Providers</p>
               <p className="text-2xl font-bold text-blue-900 mt-1">
-                ${(providerTiers.elite * 999 + providerTiers.professional * 599 + providerTiers.basic * 299).toLocaleString()}
+                {stats.providerTiers.elite + stats.providerTiers.professional + stats.providerTiers.basic}
               </p>
             </div>
           </div>
@@ -300,17 +346,21 @@ export default function AdminDashboard() {
               <MapPinIcon className="w-5 h-5 text-gray-400" />
             </div>
             <div className="space-y-3">
-              {topAreas.map((area) => (
-                <div key={area.city} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">{area.city}</p>
-                    <p className="text-sm text-gray-600">{area.leads} leads • {area.providers} providers</p>
+              {stats.topAreas.length === 0 ? (
+                <p className="text-gray-500 text-sm">No location data available</p>
+              ) : (
+                stats.topAreas.map((area: any, index: number) => (
+                  <div key={`${area.city}-${index}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900">{area.city}</p>
+                      <p className="text-sm text-gray-600">{area.leads} leads • {area.providers} providers</p>
+                    </div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getCoverageColor(area.coverage)}`}>
+                      {area.coverage}
+                    </span>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getCoverageColor(area.coverage)}`}>
-                    {area.coverage}
-                  </span>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
@@ -321,19 +371,23 @@ export default function AdminDashboard() {
               <ClockIcon className="w-5 h-5 text-gray-400" />
             </div>
             <div className="space-y-3">
-              {recentActivity.map((activity, index) => (
-                <div key={index} className="flex items-start gap-3">
-                  {activity.urgent ? (
-                    <ExclamationTriangleIcon className="w-5 h-5 text-red-500 mt-0.5" />
-                  ) : (
-                    <CheckCircleIcon className="w-5 h-5 text-green-500 mt-0.5" />
-                  )}
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-900">{activity.message}</p>
-                    <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
+              {stats.recentActivity.length === 0 ? (
+                <p className="text-gray-500 text-sm">No recent activity</p>
+              ) : (
+                stats.recentActivity.map((activity: any, index: number) => (
+                  <div key={index} className="flex items-start gap-3">
+                    {activity.urgent ? (
+                      <ExclamationTriangleIcon className="w-5 h-5 text-red-500 mt-0.5" />
+                    ) : (
+                      <CheckCircleIcon className="w-5 h-5 text-green-500 mt-0.5" />
+                    )}
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-900">{activity.message}</p>
+                      <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
             <button className="w-full mt-4 text-center text-sm text-blue-600 hover:text-blue-800 font-medium">
               View All Activity →

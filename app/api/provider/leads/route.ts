@@ -24,7 +24,7 @@ export async function GET() {
       preferredTime: quote.preferredTimeWindow || 'Flexible',
       photos: Array.isArray(quote.photoUrls) ? quote.photoUrls : [],
       items: (quote.aiAnalysis as any)?.items || [],
-      estimatedValue: quote.totalPrice || Math.floor(Math.random() * 800) + 200,
+      estimatedValue: quote.totalPrice || quote.priceRangeMax || 0,
       status: quote.status === 'ACCEPTED' ? 'accepted' : quote.status === 'EXPIRED' ? 'declined' : 'new',
       createdAt: quote.createdAt,
       urgency: quote.isUrgent ? 'high' : 'medium',
