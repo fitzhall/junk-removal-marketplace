@@ -1,4 +1,4 @@
-import { DocumentTextIcon, CheckCircleIcon, ClockIcon, TrendingUpIcon } from '@heroicons/react/24/outline'
+import { DocumentTextIcon, CheckCircleIcon, ClockIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline'
 
 interface ProviderStatsProps {
   stats: {
@@ -19,7 +19,7 @@ export default function ProviderStats({ stats }: ProviderStatsProps) {
             <ClockIcon className="h-6 w-6 text-blue-600" />
           </div>
           <div className="ml-4">
-            <p className="text-sm font-medium text-gray-600">Today's Leads</p>
+            <p className="text-sm font-medium text-gray-600">Today&apos;s Leads</p>
             <p className="text-2xl font-semibold text-gray-900">{stats.todaysLeads}</p>
           </div>
         </div>
@@ -52,7 +52,7 @@ export default function ProviderStats({ stats }: ProviderStatsProps) {
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-center">
           <div className="bg-yellow-100 rounded-lg p-3">
-            <TrendingUpIcon className="h-6 w-6 text-yellow-600" />
+            <ArrowTrendingUpIcon className="h-6 w-6 text-yellow-600" />
           </div>
           <div className="ml-4">
             <p className="text-sm font-medium text-gray-600">Accept Rate</p>

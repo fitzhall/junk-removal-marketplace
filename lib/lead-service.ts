@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { Quote, Provider, LeadDistribution } from '@prisma/client'
+import { Provider, LeadDistribution } from '@prisma/client'
 
 export interface LeadDistributionCriteria {
   zipCode: string

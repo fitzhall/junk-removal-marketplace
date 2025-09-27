@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { MapPinIcon, PhoneIcon, EnvelopeIcon, CalendarIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline'
+import { MapPinIcon, PhoneIcon, EnvelopeIcon, CalendarIcon } from '@heroicons/react/24/outline'
 import { formatDistanceToNow } from 'date-fns'
 
 interface LeadCardProps {

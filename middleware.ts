@@ -1,29 +1,37 @@
-import { withAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { getToken } from 'next-auth/jwt'
 
-export default withAuth(
-  function middleware(req) {
-    const token = req.nextauth.token
-    const path = req.nextUrl.pathname
+export async function middleware(request: NextRequest) {
+  const token = await getToken({ req: request })
+  const path = request.nextUrl.pathname
 
-    // Provider-only routes
-    if (path.startsWith('/provider') && token?.role !== 'PROVIDER') {
-      return NextResponse.redirect(new URL('/dashboard', req.url))
-    }
+  // Public routes that don't need authentication
+  const publicRoutes = ['/', '/login', '/signup', '/api/auth', '/api/quotes']
+  const isPublicRoute = publicRoutes.some(route => path.startsWith(route))
 
-    // Admin-only routes
-    if (path.startsWith('/admin') && token?.role !== 'ADMIN') {
-      return NextResponse.redirect(new URL('/dashboard', req.url))
-    }
-
+  if (isPublicRoute) {
     return NextResponse.next()
-  },
-  {
-    callbacks: {
-      authorized: ({ token }) => !!token
-    }
   }
-)
+
+  // Redirect to login if not authenticated
+  if (!token) {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  // Provider-only routes
+  if (path.startsWith('/provider') && token.role !== 'PROVIDER') {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  // Admin-only routes
+  if (path.startsWith('/admin') && token.role !== 'ADMIN') {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  return NextResponse.next()
+}
+
 
 export const config = {
   matcher: [

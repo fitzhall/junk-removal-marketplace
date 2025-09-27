@@ -1,4 +1,5 @@
-import { NextAuthOptions, getServerSession } from 'next-auth'
+import { NextAuthOptions } from 'next-auth'
+import { getServerSession as getNextAuthSession } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/prisma'
@@ -81,7 +82,7 @@ export const authOptions: NextAuthOptions = {
 }
 
 export async function getSession() {
-  return await getServerSession(authOptions)
+  return await getNextAuthSession(authOptions)
 }
 
 export async function getCurrentUser() {
