@@ -336,6 +336,7 @@ export default function Home() {
             <a href="#" className="hover:text-green-400 transition-colors">Privacy Policy</a>
             <a href="#" className="hover:text-green-400 transition-colors">Terms of Service</a>
             <a href="#" className="hover:text-green-400 transition-colors">Contact</a>
+            <a href="/provider" className="hover:text-green-400 transition-colors">Provider Portal</a>
           </div>
         </div>
       </footer>
