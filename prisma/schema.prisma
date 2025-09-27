@@ -53,15 +53,16 @@ enum ProviderStatus {
 }
 
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  phone         String?
-  name          String?
-  role          Role      @default(CUSTOMER)
-  emailVerified DateTime?
-  phoneVerified DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id             String    @id @default(uuid())
+  email          String    @unique
+  hashedPassword String?
+  phone          String?
+  name           String?
+  role           Role      @default(CUSTOMER)
+  emailVerified  DateTime?
+  phoneVerified  DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   provider Provider?
   quotes   Quote[]

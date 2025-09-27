@@ -1,8 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { VisionAIService } from '@/lib/google-vision'
-// import { createClient } from '@/lib/supabase-server' // TODO: Enable when saving to database
+import { prisma } from '@/lib/prisma'
+import { VolumeSize } from '@prisma/client'
+import { cloudinaryService } from '@/lib/cloudinary'
+import { leadService } from '@/lib/lead-service'
 
-function getMockResponse(location: any, customerInfo: any) {
+interface LocationData {
+  address?: string
+  zipCode?: string
+  city?: string
+  state?: string
+}
+
+interface CustomerInfoData {
+  name?: string
+  email?: string
+  phone?: string
+  preferredDate?: string
+  preferredTime?: string
+  isUrgent?: boolean
+}
+
+function mapVolumeToEnum(volume: string): VolumeSize {
+  const volumeMap: Record<string, VolumeSize> = {
+    'QUARTER': VolumeSize.QUARTER,
+    'HALF': VolumeSize.HALF,
+    'THREE_QUARTER': VolumeSize.THREE_QUARTER,
+    'FULL': VolumeSize.FULL,
+    'MULTIPLE': VolumeSize.MULTIPLE
+  }
+  return volumeMap[volume] || VolumeSize.HALF
+}
+
+function getMockResponse(location: LocationData, customerInfo: CustomerInfoData) {
   return {
     success: true,
     id: Math.random().toString(36).substring(7),
@@ -53,9 +83,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Upload photos to Cloudinary
+    let uploadedPhotoUrls: string[] = []
+    try {
+      const photoBuffers = await Promise.all(
+        photos.map(async (photo) => Buffer.from(await photo.arrayBuffer()))
+      )
+      const uploadResults = await cloudinaryService.uploadMultiple(photoBuffers, 'junk-removal/quotes')
+      uploadedPhotoUrls = uploadResults.map(result => result.secure_url)
+      console.log(`Uploaded ${uploadedPhotoUrls.length} photos to Cloudinary`)
+    } catch (uploadError) {
+      console.error('Failed to upload photos to Cloudinary:', uploadError)
+      // Continue without photo URLs if upload fails
+    }
+
     // Parse location and customer info with better error handling
-    let location = {}
-    let customerInfo = {}
+    let location: LocationData = {}
+    let customerInfo: CustomerInfoData = {}
 
     try {
       const locationStr = formData.get('location') as string
@@ -109,29 +153,96 @@ export async function POST(request: NextRequest) {
         analysisResults = await visionService.analyzeImage(buffer)
         console.log('AI analysis results:', analysisResults)
 
-        // Format the response with real AI analysis
-        const response = {
-          success: true,
-          id: Math.random().toString(36).substring(7),
-          priceMin: analysisResults.estimatedPrice.min,
-          priceMax: analysisResults.estimatedPrice.max,
-          items: analysisResults.items.map((item: any) => ({
-            type: item.name.charAt(0).toUpperCase() + item.name.slice(1),
-            quantity: item.quantity,
-            confidence: Math.round(item.confidence * 100),
-            category: item.category,
-            requiresSpecialHandling: item.requiresSpecialHandling
-          })),
-          volume: visionService.getTruckLoad(analysisResults.totalVolume), // Use existing instance
-          totalVolume: analysisResults.totalVolume,
-          requiresSpecialHandling: analysisResults.requiresSpecialHandling,
-          location,
-          customerInfo
-        }
+        // Save quote to database as a lead (no user association needed)
+        let response: any
+        try {
+          const savedQuote = await prisma.quote.create({
+            data: {
+              status: 'PENDING',
+              customerName: customerInfo?.name || null,
+              customerEmail: customerInfo?.email || null,
+              customerPhone: customerInfo?.phone || null,
+              pickupAddress: location?.address || null,
+              pickupZip: location?.zipCode || null,
+              pickupCity: location?.city || null,
+              pickupState: location?.state || null,
+              photoUrls: uploadedPhotoUrls,
+              aiAnalysis: analysisResults as any, // Cast to any for JSON field
+              estimatedVolume: mapVolumeToEnum(visionService.getTruckLoad(analysisResults.totalVolume)),
+              priceRangeMin: analysisResults.estimatedPrice.min,
+              priceRangeMax: analysisResults.estimatedPrice.max,
+              totalPrice: (analysisResults.estimatedPrice.min + analysisResults.estimatedPrice.max) / 2,
+              preferredDate: customerInfo?.preferredDate ? new Date(customerInfo.preferredDate) : null,
+              preferredTimeWindow: customerInfo?.preferredTime || null,
+              isUrgent: customerInfo?.isUrgent || false,
+              source: 'web',
+              items: {
+                create: analysisResults.items.map((item: any) => ({
+                  itemType: item.name,
+                  itemDescription: item.description || null,
+                  quantity: item.quantity,
+                  aiConfidence: item.confidence,
+                  requiresSpecialHandling: item.requiresSpecialHandling || false,
+                  estimatedWeightLbs: item.estimatedWeight || null,
+                  dimensions: item.dimensions || null
+                }))
+              }
+            },
+            include: {
+              items: true
+            }
+          })
 
-        // TODO: Save to Supabase database here
-        // const supabase = createClient()
-        // await supabase.from('quotes').insert({...})
+          // Distribute lead to providers
+          try {
+            await leadService.distributeLeadToProviders(savedQuote.id)
+            console.log('Lead distributed to providers')
+          } catch (distError) {
+            console.error('Failed to distribute lead:', distError)
+            // Continue even if distribution fails
+          }
+
+          // Format the response with database ID
+          response = {
+            success: true,
+            id: savedQuote.id,
+            priceMin: savedQuote.priceRangeMin,
+            priceMax: savedQuote.priceRangeMax,
+            items: savedQuote.items.map((item: any) => ({
+              type: item.itemType.charAt(0).toUpperCase() + item.itemType.slice(1),
+              quantity: item.quantity,
+              confidence: item.aiConfidence ? Math.round(item.aiConfidence * 100) : null,
+              requiresSpecialHandling: item.requiresSpecialHandling
+            })),
+            volume: savedQuote.estimatedVolume,
+            totalVolume: analysisResults.totalVolume,
+            requiresSpecialHandling: analysisResults.requiresSpecialHandling,
+            location,
+            customerInfo
+          }
+        } catch (dbError) {
+          console.error('Failed to save to database:', dbError)
+          // Continue with response even if DB save fails
+          response = {
+            success: true,
+            id: Math.random().toString(36).substring(7),
+            priceMin: analysisResults.estimatedPrice.min,
+            priceMax: analysisResults.estimatedPrice.max,
+            items: analysisResults.items.map((item: any) => ({
+              type: item.name.charAt(0).toUpperCase() + item.name.slice(1),
+              quantity: item.quantity,
+              confidence: Math.round(item.confidence * 100),
+              category: item.category,
+              requiresSpecialHandling: item.requiresSpecialHandling
+            })),
+            volume: visionService.getTruckLoad(analysisResults.totalVolume),
+            totalVolume: analysisResults.totalVolume,
+            requiresSpecialHandling: analysisResults.requiresSpecialHandling,
+            location,
+            customerInfo,
+            warning: 'Quote processed but not saved to database'
+          }
+        }
 
         console.log('Returning AI analysis response:', JSON.stringify(response, null, 2))
         return NextResponse.json(response, {
@@ -177,6 +288,56 @@ export async function POST(request: NextRequest) {
 
     // Mock response if Google Vision is not configured
     const mockResponse = getMockResponse(location, customerInfo)
+
+    // Try to save mock data to database
+    try {
+      const savedQuote = await prisma.quote.create({
+        data: {
+          status: 'PENDING',
+          customerName: customerInfo?.name || null,
+          customerEmail: customerInfo?.email || null,
+          customerPhone: customerInfo?.phone || null,
+          pickupAddress: location?.address || null,
+          pickupZip: location?.zipCode || null,
+          pickupCity: location?.city || null,
+          pickupState: location?.state || null,
+          photoUrls: uploadedPhotoUrls,
+          aiAnalysis: mockResponse as any,
+          estimatedVolume: mapVolumeToEnum(mockResponse.volume),
+          priceRangeMin: mockResponse.priceMin,
+          priceRangeMax: mockResponse.priceMax,
+          totalPrice: (mockResponse.priceMin + mockResponse.priceMax) / 2,
+          preferredDate: customerInfo?.preferredDate ? new Date(customerInfo.preferredDate) : null,
+          preferredTimeWindow: customerInfo?.preferredTime || null,
+          isUrgent: customerInfo?.isUrgent || false,
+          source: 'web',
+          items: {
+            create: mockResponse.items.map((item: any) => ({
+              itemType: item.type,
+              quantity: item.quantity,
+              aiConfidence: item.confidence / 100,
+              requiresSpecialHandling: item.category === 'hazardous' || item.category === 'heavy'
+            }))
+          }
+        },
+        include: {
+          items: true
+        }
+      })
+
+      mockResponse.id = savedQuote.id
+      console.log('Saved mock quote to database:', savedQuote.id)
+
+      // Distribute lead to providers
+      try {
+        await leadService.distributeLeadToProviders(savedQuote.id)
+        console.log('Lead distributed to providers')
+      } catch (distError) {
+        console.error('Failed to distribute lead:', distError)
+      }
+    } catch (dbError) {
+      console.error('Failed to save mock data to database:', dbError)
+    }
 
     console.log('Returning mock response:', JSON.stringify(mockResponse, null, 2))
     return NextResponse.json(mockResponse, {
