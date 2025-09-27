@@ -6,10 +6,8 @@ import {
   CreditCardIcon,
   MapPinIcon,
   BellIcon,
-  UserCircleIcon,
   SparklesIcon,
-  CheckIcon,
-  CurrencyDollarIcon
+  CheckIcon
 } from '@heroicons/react/24/outline'
 
 const subscriptionPlans = [

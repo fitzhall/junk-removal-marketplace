@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma'
+// import { prisma } from '@/lib/prisma'
 
 interface Provider {
   id: string
@@ -73,13 +73,13 @@ export class LeadDistributionService {
   /**
    * Get providers eligible for receiving leads in a specific area
    */
-  private async getEligibleProviders(zipCode: string): Promise<Provider[]> {
+  private async getEligibleProviders(_zipCode: string): Promise<Provider[]> {
     // For demo, return mock providers
     // In production, query from database based on service areas and active status
     return [
       {
         id: 'provider-1',
-        subscriptionTier: 'ELITE',
+        subscriptionTier: 'ELITE' as const,
         serviceAreas: ['94102', '94103', '94104'],
         leadCredits: 35,
         responseTime: 15,
@@ -89,7 +89,7 @@ export class LeadDistributionService {
       },
       {
         id: 'provider-2',
-        subscriptionTier: 'PROFESSIONAL',
+        subscriptionTier: 'PROFESSIONAL' as const,
         serviceAreas: ['94102', '94105'],
         leadCredits: 12,
         responseTime: 30,
@@ -99,7 +99,7 @@ export class LeadDistributionService {
       },
       {
         id: 'provider-3',
-        subscriptionTier: 'BASIC',
+        subscriptionTier: 'BASIC' as const,
         serviceAreas: ['94102'],
         leadCredits: 3,
         responseTime: 60,

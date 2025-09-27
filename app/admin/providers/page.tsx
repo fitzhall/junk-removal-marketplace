@@ -4,16 +4,10 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   MagnifyingGlassIcon,
-  UserCircleIcon,
   CreditCardIcon,
   StarIcon,
-  ClockIcon,
-  CheckCircleIcon,
   XCircleIcon,
   ExclamationTriangleIcon,
-  CurrencyDollarIcon,
-  MapPinIcon,
-  PhoneIcon,
   EnvelopeIcon,
   ChartBarIcon,
   SparklesIcon
@@ -47,7 +41,6 @@ export default function AdminProvidersPage() {
   const [tierFilter, setTierFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null)
-  const [showOnboarding, setShowOnboarding] = useState(false)
 
   // Mock provider data
   const mockProviders: Provider[] = [
@@ -213,7 +206,7 @@ export default function AdminProvidersPage() {
                 </p>
               </div>
               <button
-                onClick={() => setShowOnboarding(true)}
+                onClick={() => console.log('Show onboarding')}
                 className="text-yellow-600 hover:text-yellow-800 font-medium"
               >
                 Review Now →

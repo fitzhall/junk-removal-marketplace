@@ -10,8 +10,6 @@ import {
   BanknotesIcon,
   ReceiptRefundIcon,
   ExclamationTriangleIcon,
-  CheckCircleIcon,
-  ClockIcon,
   ChartBarIcon,
   CalendarIcon,
   DocumentTextIcon,
@@ -177,7 +175,7 @@ export default function AdminFinancePage() {
             <div className="flex items-center gap-4">
               <select
                 value={timeRange}
-                onChange={(e) => setTimeRange(e.target.value as any)}
+                onChange={(e) => setTimeRange(e.target.value as 'today' | 'week' | 'month' | 'year')}
                 className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="today">Today</option>

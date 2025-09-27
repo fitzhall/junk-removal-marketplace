@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   ChartBarIcon,
@@ -26,7 +26,6 @@ interface KPICard {
 
 export default function AdminDashboard() {
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month'>('today')
-  const [selectedMetric, setSelectedMetric] = useState<string>('revenue')
 
   // Mock KPI data
   const kpis: KPICard[] = [

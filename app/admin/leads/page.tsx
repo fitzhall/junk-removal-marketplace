@@ -1,19 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { motion } from 'framer-motion'
 import {
   MagnifyingGlassIcon,
-  FunnelIcon,
-  ArrowPathIcon,
   CheckCircleIcon,
-  XCircleIcon,
   ClockIcon,
-  ExclamationTriangleIcon,
-  CurrencyDollarIcon,
-  MapPinIcon,
-  UserIcon,
-  PhoneIcon
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline'
 
 interface Lead {
@@ -36,7 +28,6 @@ export default function AdminLeadsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [selectedLeads, setSelectedLeads] = useState<string[]>([])
-  const [showDetails, setShowDetails] = useState<string | null>(null)
 
   // Mock leads data
   const mockLeads: Lead[] = [
@@ -343,7 +334,7 @@ export default function AdminLeadsPage() {
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => setShowDetails(lead.id)}
+                          onClick={() => console.log('View lead:', lead.id)}
                           className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                         >
                           View
