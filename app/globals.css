@@ -254,4 +254,18 @@
   .divider-thick {
     @apply border-t-2 border-gray-100 my-6;
   }
+
+  /* Shimmer Animation for Skeletons */
+  @keyframes shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s ease-in-out infinite;
+  }
 }
