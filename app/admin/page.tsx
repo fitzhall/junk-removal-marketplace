@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import dynamic from 'next/dynamic'
 import {
   ChartBarIcon,
   UsersIcon,
@@ -15,6 +16,12 @@ import {
   MapPinIcon
 } from '@heroicons/react/24/outline'
 
+// Dynamically import mobile dashboard
+const MobileAdminDashboard = dynamic(
+  () => import('@/components/admin/MobileAdminDashboard'),
+  { ssr: false }
+)
+
 interface KPICard {
   title: string
   value: string | number
@@ -27,6 +34,7 @@ interface KPICard {
 export default function AdminDashboard() {
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month'>('today')
   const [loading, setLoading] = useState(true)
+  const [isMobile, setIsMobile] = useState(false)
   const [stats, setStats] = useState<any>({
     kpis: {
       totalRevenue: 0,
@@ -55,6 +63,14 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchStats()
+
+    // Check if mobile
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
   }, [timeRange])
 
   const fetchStats = async () => {
@@ -123,6 +139,16 @@ export default function AdminDashboard() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-gray-500">Loading dashboard...</div>
       </div>
+    )
+  }
+
+  // Use mobile component on small screens
+  if (isMobile) {
+    return (
+      <MobileAdminDashboard
+        stats={stats}
+        onRefresh={fetchStats}
+      />
     )
   }
 
