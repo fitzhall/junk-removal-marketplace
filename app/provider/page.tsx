@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import dynamic from 'next/dynamic'
 import {
   BriefcaseIcon,
   ClockIcon,
@@ -14,6 +15,12 @@ import {
   CalendarIcon,
   ChartBarIcon
 } from '@heroicons/react/24/outline'
+
+// Dynamically import mobile dashboard to reduce initial bundle
+const MobileProviderDashboard = dynamic(
+  () => import('@/components/provider/MobileProviderDashboard'),
+  { ssr: false }
+)
 
 interface Lead {
   id: string
@@ -44,10 +51,19 @@ export default function ProviderDashboard() {
     revenue: 0,
     conversionRate: 0
   })
+  const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
     fetchLeads()
     fetchStats()
+
+    // Check if mobile
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
   const fetchLeads = async () => {
@@ -62,6 +78,11 @@ export default function ProviderDashboard() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleRefresh = async () => {
+    await fetchLeads()
+    await fetchStats()
   }
 
   const fetchStats = async () => {
@@ -136,19 +157,33 @@ export default function ProviderDashboard() {
     }
   }
 
+  // Use mobile component on small screens
+  if (isMobile) {
+    return (
+      <MobileProviderDashboard
+        leads={leads}
+        stats={stats}
+        onAcceptLead={handleAcceptLead}
+        onDeclineLead={handleDeclineLead}
+        onRefresh={handleRefresh}
+      />
+    )
+  }
+
+  // Desktop view
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">Provider Dashboard</h1>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Provider Dashboard</h1>
             <div className="flex items-center gap-4">
-              <div className="text-right">
+              <div className="text-right hidden sm:block">
                 <p className="text-sm text-gray-600">Professional Plan</p>
                 <p className="text-xs text-gray-500">7 credits remaining</p>
               </div>
-              <a href="/provider/settings" className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+              <a href="/provider/settings" className="bg-green-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-green-700 text-sm sm:text-base">
                 Settings
               </a>
             </div>
@@ -268,27 +303,27 @@ export default function ProviderDashboard() {
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-gray-600">
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 text-sm text-gray-600">
                         <div className="flex items-center gap-2">
-                          <MapPinIcon className="w-4 h-4" />
-                          {lead.address}
+                          <MapPinIcon className="w-4 h-4 flex-shrink-0" />
+                          <span className="truncate">{lead.address}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <CalendarIcon className="w-4 h-4" />
-                          {new Date(lead.preferredDate).toLocaleDateString()} at {lead.preferredTime}
+                          <CalendarIcon className="w-4 h-4 flex-shrink-0" />
+                          <span className="truncate">{new Date(lead.preferredDate).toLocaleDateString()} at {lead.preferredTime}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <ClockIcon className="w-4 h-4" />
-                          {new Date(lead.createdAt).toLocaleString()}
+                          <ClockIcon className="w-4 h-4 flex-shrink-0" />
+                          <span className="truncate">{new Date(lead.createdAt).toLocaleString()}</span>
                         </div>
                       </div>
 
                       <p className="mt-2 text-gray-700 line-clamp-2">{lead.description}</p>
                     </div>
 
-                    <div className="text-right ml-4">
-                      <p className="text-2xl font-bold text-green-600">${lead.estimatedValue}</p>
-                      <p className="text-sm text-gray-500">Estimated value</p>
+                    <div className="text-right ml-4 flex-shrink-0">
+                      <p className="text-xl sm:text-2xl font-bold text-green-600">${lead.estimatedValue}</p>
+                      <p className="text-xs sm:text-sm text-gray-500">Estimated value</p>
                     </div>
                   </div>
                 </div>
