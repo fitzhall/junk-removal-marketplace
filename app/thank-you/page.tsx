@@ -1,10 +1,10 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { CheckCircleIcon, PhoneIcon, ClockIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
 
-export default function ThankYouPage() {
+function ThankYouContent() {
   const searchParams = useSearchParams()
   const quoteId = searchParams.get('id')
   const estimatedPrice = searchParams.get('price')
@@ -238,5 +238,20 @@ export default function ThankYouPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ThankYouPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <ThankYouContent />
+    </Suspense>
   )
 }
