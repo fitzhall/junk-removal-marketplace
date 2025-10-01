@@ -12,6 +12,7 @@ import ApiTester from './ApiTester'
 import LoadingSkeleton from './LoadingSkeleton'
 import ItemEditor from './ItemEditor'
 import PricingBreakdown from './PricingBreakdown'
+import BookingScheduler from './BookingScheduler'
 import {
   MapPinIcon,
   UserIcon,
@@ -38,9 +39,11 @@ export default function QuoteForm() {
     phone: ''
   })
   const [loading, setLoading] = useState(false)
-  const [quote, setQuote] = useState<{ priceMin: number; priceMax: number; items: Array<{ type: string; quantity: number; confidence?: number; requiresSpecialHandling?: boolean; category?: string }> } | null>(null)
+  const [quote, setQuote] = useState<{ priceMin: number; priceMax: number; items: Array<{ type: string; quantity: number; confidence?: number; requiresSpecialHandling?: boolean; category?: string }>; id?: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showItemEditor, setShowItemEditor] = useState(false)
+  const [showBooking, setShowBooking] = useState(false)
+  const [bookingConfirmed, setBookingConfirmed] = useState(false)
 
   const steps = [
     { number: 1, title: 'Photos', icon: CameraIcon },
@@ -693,10 +696,16 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
               transition={{ delay: 0.6 }}
               className="grid md:grid-cols-2 gap-4 mt-8"
             >
-              <button className="bg-gray-100 text-gray-700 py-4 px-6 rounded-xl font-semibold text-lg hover:bg-gray-200 transition-colors">
+              <button
+                onClick={() => alert('Save functionality coming soon!')}
+                className="bg-gray-100 text-gray-700 py-4 px-6 rounded-xl font-semibold text-lg hover:bg-gray-200 transition-colors"
+              >
                 Save Quote for Later
               </button>
-              <button className="bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 px-6 rounded-xl font-semibold text-lg hover:shadow-xl transition-all duration-300">
+              <button
+                onClick={() => setShowBooking(true)}
+                className="bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 px-6 rounded-xl font-semibold text-lg hover:shadow-xl transition-all duration-300"
+              >
                 Book Pickup Now →
               </button>
             </motion.div>
@@ -704,6 +713,78 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
             <p className="text-center text-sm text-gray-500 mt-6">
               ✅ 3 local providers available • Average arrival: 2-4 hours
             </p>
+          </motion.div>
+        )}
+
+        {/* Booking Scheduler */}
+        {showBooking && quote && !bookingConfirmed && (
+          <motion.div
+            key="booking"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            <BookingScheduler
+              quoteId={quote.id || ''}
+              estimatedPrice={{ min: quote.priceMin, max: quote.priceMax }}
+              onBookingComplete={(bookingData) => {
+                setBookingConfirmed(true)
+                setShowBooking(false)
+              }}
+            />
+          </motion.div>
+        )}
+
+        {/* Booking Confirmation */}
+        {bookingConfirmed && (
+          <motion.div
+            key="confirmation"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-3xl shadow-xl p-8 text-center"
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', delay: 0.2 }}
+              className="inline-flex items-center justify-center w-24 h-24 bg-green-100 rounded-full mb-6"
+            >
+              <CheckIcon className="w-12 h-12 text-green-600" />
+            </motion.div>
+
+            <h2 className="text-3xl font-bold mb-3">Booking Confirmed! 🎉</h2>
+            <p className="text-xl text-gray-600 mb-8">
+              We'll send you a confirmation email shortly
+            </p>
+
+            <div className="bg-green-50 rounded-2xl p-6 mb-8">
+              <h3 className="font-semibold mb-4">What's Next?</h3>
+              <ol className="text-left space-y-3">
+                <li className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-sm">1</span>
+                  <span>Local providers will review your request</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-sm">2</span>
+                  <span>You'll receive bids within 1 hour</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-sm">3</span>
+                  <span>Choose your preferred provider</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-sm">4</span>
+                  <span>Confirm final details and schedule</span>
+                </li>
+              </ol>
+            </div>
+
+            <button
+              onClick={() => window.location.href = '/'}
+              className="bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 px-8 rounded-xl font-semibold text-lg hover:shadow-xl transition-all"
+            >
+              Back to Home
+            </button>
           </motion.div>
         )}
       </AnimatePresence>

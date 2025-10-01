@@ -19,6 +19,7 @@ enum QuoteStatus {
   PENDING
   SENT
   ACCEPTED
+  BOOKED
   EXPIRED
 }
 
@@ -36,6 +37,14 @@ enum LeadStatus {
   ACCEPTED
   DECLINED
   EXPIRED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
 }
 
 enum VolumeSize {
@@ -148,6 +157,7 @@ model Quote {
 
   items            QuoteItem[]
   job              Job?
+  bookings         Booking[]
   leadDistribution LeadDistribution[]
 
   @@index([status])
@@ -170,6 +180,33 @@ model QuoteItem {
   createdAt              DateTime @default(now())
 
   @@index([quoteId])
+}
+
+model Booking {
+  id             String        @id @default(uuid())
+  quoteId        String
+  quote          Quote         @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  status         BookingStatus @default(PENDING)
+  scheduledDate  DateTime
+  timeSlot       String
+  isUrgent       Boolean       @default(false)
+  estimatedPrice Float
+  customerName   String?
+  customerEmail  String?
+  customerPhone  String?
+  pickupAddress  String?
+  pickupZip      String?
+  pickupCity     String?
+  pickupState    String?
+  confirmationCode String?
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([quoteId])
+  @@index([status])
+  @@index([scheduledDate])
+  @@index([customerEmail])
 }
 
 model Job {
