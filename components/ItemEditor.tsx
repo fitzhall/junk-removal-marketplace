@@ -90,10 +90,10 @@ export default function ItemEditor({ items: initialItems, onUpdate, onConfirm }:
   }
 
   return (
-    <div className="bg-white rounded-3xl shadow-xl p-8">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold mb-2">Review & Edit Items</h2>
-        <p className="text-gray-600">Adjust quantities or add items we might have missed</p>
+    <div className="bg-white rounded-3xl shadow-xl p-4 sm:p-8">
+      <div className="mb-4 sm:mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold mb-2">Review & Edit Items</h2>
+        <p className="text-sm sm:text-base text-gray-600">Adjust quantities or add items we might have missed</p>
       </div>
 
       {/* Detected Items List */}
@@ -105,54 +105,56 @@ export default function ItemEditor({ items: initialItems, onUpdate, onConfirm }:
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20, height: 0 }}
-              className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+              className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
             >
-              <div className="flex items-center gap-3">
-                <span className="font-medium text-lg">{item.type}</span>
-                {item.category && (
-                  <span className={`text-xs px-2 py-1 rounded-full ${getCategoryColor(item.category)}`}>
-                    {item.category}
-                  </span>
-                )}
-                {item.requiresSpecialHandling && (
-                  <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
-                    Special
-                  </span>
-                )}
-                {item.confidence !== undefined && item.confidence < 100 && (
-                  <span className="text-xs text-gray-500">
-                    AI: {item.confidence}%
-                  </span>
-                )}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 flex-1">
+                <span className="font-medium text-base sm:text-lg">{item.type}</span>
+                <div className="flex items-center gap-2">
+                  {item.category && (
+                    <span className={`text-xs px-2 py-1 rounded-full ${getCategoryColor(item.category)}`}>
+                      {item.category}
+                    </span>
+                  )}
+                  {item.requiresSpecialHandling && (
+                    <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
+                      Special
+                    </span>
+                  )}
+                  {item.confidence !== undefined && item.confidence < 100 && (
+                    <span className="text-xs text-gray-500">
+                      AI: {item.confidence}%
+                    </span>
+                  )}
+                </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 {/* Quantity Controls */}
                 <div className="flex items-center bg-white rounded-lg border">
                   <button
                     onClick={() => updateQuantity(index, -1)}
-                    className="p-2 hover:bg-gray-100 transition-colors rounded-l-lg"
+                    className="p-1.5 sm:p-2 hover:bg-gray-100 transition-colors rounded-l-lg"
                     disabled={item.quantity <= 1}
                   >
-                    <MinusIcon className="w-4 h-4 text-gray-600" />
+                    <MinusIcon className="w-3 sm:w-4 h-3 sm:h-4 text-gray-600" />
                   </button>
-                  <span className="px-4 py-2 font-medium min-w-[50px] text-center">
+                  <span className="px-2 sm:px-4 py-1 sm:py-2 font-medium min-w-[40px] sm:min-w-[50px] text-center text-sm sm:text-base">
                     {item.quantity}
                   </span>
                   <button
                     onClick={() => updateQuantity(index, 1)}
-                    className="p-2 hover:bg-gray-100 transition-colors rounded-r-lg"
+                    className="p-1.5 sm:p-2 hover:bg-gray-100 transition-colors rounded-r-lg"
                   >
-                    <PlusIcon className="w-4 h-4 text-gray-600" />
+                    <PlusIcon className="w-3 sm:w-4 h-3 sm:h-4 text-gray-600" />
                   </button>
                 </div>
 
                 {/* Remove Button */}
                 <button
                   onClick={() => removeItem(index)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  className="p-1.5 sm:p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                 >
-                  <TrashIcon className="w-5 h-5" />
+                  <TrashIcon className="w-4 sm:w-5 h-4 sm:h-5" />
                 </button>
               </div>
             </motion.div>

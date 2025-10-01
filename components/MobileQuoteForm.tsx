@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import imageCompression from 'browser-image-compression'
 import LoadingSkeleton from './LoadingSkeleton'
+import ItemEditor from './ItemEditor'
 import {
   MapPinIcon,
   UserIcon,
@@ -15,7 +16,8 @@ import {
   XMarkIcon,
   PlusIcon,
   PhotoIcon,
-  MapIcon
+  MapIcon,
+  PencilSquareIcon
 } from '@heroicons/react/24/outline'
 import { Loader2 } from 'lucide-react'
 
@@ -42,6 +44,7 @@ export default function MobileQuoteForm({ onComplete }: MobileQuoteFormProps) {
   const [detectingLocation, setDetectingLocation] = useState(false)
   const [quote, setQuote] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
+  const [showItemEditor, setShowItemEditor] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
 
@@ -133,7 +136,8 @@ export default function MobileQuoteForm({ onComplete }: MobileQuoteFormProps) {
 
       const data = await response.json()
       setQuote(data)
-      setStep(4)
+      // Show item editor first before final quote
+      setShowItemEditor(true)
 
       // Don't call onComplete immediately - wait for user to finish viewing quote
       // if (onComplete) {
@@ -519,8 +523,30 @@ export default function MobileQuoteForm({ onComplete }: MobileQuoteFormProps) {
           </motion.div>
         )}
 
+        {/* Item Editor */}
+        {showItemEditor && quote && !loading && (
+          <motion.div
+            key="itemEditor"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="p-4"
+          >
+            <ItemEditor
+              items={quote.items || []}
+              onUpdate={(updatedItems) => {
+                setQuote({ ...quote, items: updatedItems })
+              }}
+              onConfirm={() => {
+                setShowItemEditor(false)
+                setStep(4)
+              }}
+            />
+          </motion.div>
+        )}
+
         {/* Step 4: Quote Result */}
-        {step === 4 && quote && (
+        {step === 4 && quote && !showItemEditor && (
           <motion.div
             key="step4"
             initial={{ opacity: 0, scale: 0.95 }}
@@ -553,12 +579,26 @@ export default function MobileQuoteForm({ onComplete }: MobileQuoteFormProps) {
             {/* Identified Items */}
             {quote.items && quote.items.length > 0 && (
               <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
-                <h3 className="font-semibold mb-3">Items We Identified:</h3>
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="font-semibold">Items We Identified:</h3>
+                  <button
+                    onClick={() => setShowItemEditor(true)}
+                    className="text-blue-600 text-sm flex items-center gap-1"
+                  >
+                    <PencilSquareIcon className="w-4 h-4" />
+                    Edit
+                  </button>
+                </div>
                 <div className="space-y-2">
                   {quote.items.map((item: any, index: number) => (
                     <div key={index} className="flex justify-between items-center">
                       <span className="text-gray-700">{item.type}</span>
-                      <span className="text-gray-500">x{item.quantity}</span>
+                      <div className="flex items-center gap-3">
+                        {item.confidence && (
+                          <span className="text-xs text-gray-400">{item.confidence}%</span>
+                        )}
+                        <span className="text-gray-600 font-medium">x{item.quantity}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
