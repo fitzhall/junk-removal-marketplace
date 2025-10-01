@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
             // Continue even if distribution fails
           }
 
-          // Format the response with database ID
+          // Format the response with database ID and pricing details
           response = {
             success: true,
             id: savedQuote.id,
@@ -217,11 +217,15 @@ export async function POST(request: NextRequest) {
               type: item.itemType.charAt(0).toUpperCase() + item.itemType.slice(1),
               quantity: item.quantity,
               confidence: item.aiConfidence ? Math.round(item.aiConfidence * 100) : null,
-              requiresSpecialHandling: item.requiresSpecialHandling
+              requiresSpecialHandling: item.requiresSpecialHandling,
+              category: item.category || 'general'
             })),
             volume: savedQuote.estimatedVolume,
             totalVolume: analysisResults.totalVolume,
             requiresSpecialHandling: analysisResults.requiresSpecialHandling,
+            // Include pricing breakdown if available
+            breakdown: analysisResults.pricingDetails?.breakdown,
+            truckLoads: analysisResults.pricingDetails?.truckLoads,
             location,
             customerInfo
           }
