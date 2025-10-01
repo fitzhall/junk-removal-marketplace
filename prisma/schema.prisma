@@ -47,6 +47,14 @@ enum BookingStatus {
   CANCELLED
 }
 
+enum BidStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+  EXPIRED
+}
+
 enum VolumeSize {
   QUARTER
   HALF
@@ -97,15 +105,28 @@ model Provider {
   paymentTerms     Json?
   capabilities     Json?
   operatingHours   Json?
+
+  // Auto-assignment bid settings
+  autoBidEnabled   Boolean        @default(false)
+  bidStrategy      String?        // "PERCENTAGE_BELOW" or "FIXED_AMOUNT"
+  bidPercentage    Float?         // e.g., 10 = bid 10% below estimate
+  bidFixedAmount   Float?         // Fixed bid amount per job
+  maxJobsPerDay    Int            @default(5)
+  preferredJobTypes Json?         // Array of preferred item types
+  minJobValue      Float?         // Don't auto-bid on jobs below this
+  maxJobValue      Float?         // Don't auto-bid on jobs above this
+
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
   serviceAreas     ServiceArea[]
   jobs             Job[]
+  bids             Bid[]
   leadDistribution LeadDistribution[]
 
   @@index([status])
   @@index([rating])
+  @@index([autoBidEnabled])
 }
 
 model ServiceArea {
@@ -158,6 +179,7 @@ model Quote {
   items            QuoteItem[]
   job              Job?
   bookings         Booking[]
+  bids             Bid[]
   leadDistribution LeadDistribution[]
 
   @@index([status])
@@ -207,6 +229,31 @@ model Booking {
   @@index([status])
   @@index([scheduledDate])
   @@index([customerEmail])
+}
+
+model Bid {
+  id             String    @id @default(uuid())
+  quoteId        String
+  quote          Quote     @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  providerId     String
+  provider       Provider  @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  status         BidStatus @default(PENDING)
+  bidAmount      Float
+  estimatedDuration String? // e.g., "2-3 hours"
+  proposedDate   DateTime?
+  message        String?   // Provider's message to customer
+  notes          String?   // Internal notes
+  expiresAt      DateTime  @default(dbgenerated("NOW() + INTERVAL '48 hours'"))
+  acceptedAt     DateTime?
+  rejectedAt     DateTime?
+  rejectionReason String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([quoteId])
+  @@index([providerId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model Job {

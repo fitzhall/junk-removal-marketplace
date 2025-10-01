@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { VolumeSize } from '@prisma/client'
 import { cloudinaryService } from '@/lib/cloudinary'
 import { leadService } from '@/lib/lead-service'
+import { autoAssignQuote } from '@/lib/auto-assignment'
 
 interface LocationData {
   address?: string
@@ -198,13 +199,23 @@ export async function POST(request: NextRequest) {
             }
           })
 
-          // Distribute lead to providers
+          // Auto-assign to best provider
+          let assignmentResult
           try {
-            await leadService.distributeLeadToProviders(savedQuote.id)
-            console.log('Lead distributed to providers')
-          } catch (distError) {
-            console.error('Failed to distribute lead:', distError)
-            // Continue even if distribution fails
+            assignmentResult = await autoAssignQuote({
+              id: savedQuote.id,
+              pickupZip: savedQuote.pickupZip || '',
+              priceRangeMin: savedQuote.priceRangeMin,
+              priceRangeMax: savedQuote.priceRangeMax,
+              items: savedQuote.items.map(item => ({
+                itemType: item.itemType,
+                quantity: item.quantity
+              }))
+            })
+            console.log('Auto-assignment result:', assignmentResult)
+          } catch (assignError) {
+            console.error('Failed to auto-assign quote:', assignError)
+            // Continue even if assignment fails
           }
 
           // Format the response with database ID and pricing details
@@ -226,6 +237,13 @@ export async function POST(request: NextRequest) {
             // Include pricing breakdown if available
             breakdown: analysisResults.pricingDetails?.breakdown,
             truckLoads: analysisResults.pricingDetails?.truckLoads,
+            // Include assignment info if successful
+            assignment: assignmentResult?.success ? {
+              providerId: assignmentResult.providerId,
+              providerName: assignmentResult.providerName,
+              finalPrice: assignmentResult.bidAmount,
+              jobId: assignmentResult.jobId
+            } : null,
             location,
             customerInfo
           }
@@ -337,12 +355,30 @@ export async function POST(request: NextRequest) {
       mockResponse.id = savedQuote.id
       console.log('Saved mock quote to database:', savedQuote.id)
 
-      // Distribute lead to providers
+      // Auto-assign to best provider
       try {
-        await leadService.distributeLeadToProviders(savedQuote.id)
-        console.log('Lead distributed to providers')
-      } catch (distError) {
-        console.error('Failed to distribute lead:', distError)
+        const assignmentResult = await autoAssignQuote({
+          id: savedQuote.id,
+          pickupZip: savedQuote.pickupZip || '',
+          priceRangeMin: savedQuote.priceRangeMin,
+          priceRangeMax: savedQuote.priceRangeMax,
+          items: savedQuote.items.map(item => ({
+            itemType: item.itemType,
+            quantity: item.quantity
+          }))
+        })
+        console.log('Auto-assignment result:', assignmentResult)
+
+        if (assignmentResult.success) {
+          mockResponse.assignment = {
+            providerId: assignmentResult.providerId,
+            providerName: assignmentResult.providerName,
+            finalPrice: assignmentResult.bidAmount,
+            jobId: assignmentResult.jobId
+          }
+        }
+      } catch (assignError) {
+        console.error('Failed to auto-assign quote:', assignError)
       }
     } catch (dbError) {
       console.error('Failed to save mock data to database:', dbError)
