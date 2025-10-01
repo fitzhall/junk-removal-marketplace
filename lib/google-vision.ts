@@ -154,6 +154,7 @@ export class VisionAIService {
       const globalItemMap = new Map<string, DetectedItem>()
 
       console.log(`Analyzing ${imageBuffers.length} images...`)
+      console.log('Note: Multiple photos of the same item will be merged (not counted as duplicates)')
 
       // Analyze each image
       for (let i = 0; i < imageBuffers.length; i++) {
@@ -172,6 +173,10 @@ export class VisionAIService {
         // Process object localization (more accurate for counting)
         if (result.localizedObjectAnnotations) {
           console.log(`Image ${i + 1} detected objects:`)
+
+          // Count items within this single image
+          const imageItemCounts = new Map<string, number>()
+
           for (const object of result.localizedObjectAnnotations) {
             const objectName = object.name?.toLowerCase() || ''
             const confidence = object.score || 0
@@ -180,13 +185,21 @@ export class VisionAIService {
             // Check if this object matches our junk categories
             for (const [key, details] of Object.entries(JUNK_CATEGORIES)) {
               if (objectName.includes(key) || key.includes(objectName)) {
+                // Count how many of this item type in THIS image
+                const currentImageCount = imageItemCounts.get(key) || 0
+                imageItemCounts.set(key, currentImageCount + 1)
+
                 if (globalItemMap.has(key)) {
-                  // Increment quantity if item already exists
+                  // Item type already detected in previous images
                   const existingItem = globalItemMap.get(key)!
-                  existingItem.quantity += 1
                   existingItem.confidence = Math.max(existingItem.confidence, confidence)
+                  // Only update quantity if THIS image has more of this item than we've seen before
+                  if (imageItemCounts.get(key)! > existingItem.quantity) {
+                    existingItem.quantity = imageItemCounts.get(key)!
+                    console.log(`  Updated ${key} quantity to ${existingItem.quantity} based on this image`)
+                  }
                 } else {
-                  // Add new item
+                  // First detection of this item type
                   globalItemMap.set(key, {
                     name: key,
                     confidence,
@@ -194,7 +207,7 @@ export class VisionAIService {
                     basePrice: details.basePrice,
                     volume: details.volume,
                     requiresSpecialHandling: (details as any).special || false,
-                    quantity: 1
+                    quantity: 1  // Will be updated if we see more in this image
                   })
                 }
                 break
