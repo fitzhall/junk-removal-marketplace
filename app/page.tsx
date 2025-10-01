@@ -3,14 +3,7 @@
 import { motion } from 'framer-motion'
 import { TruckIcon, CameraIcon, CurrencyDollarIcon, CheckCircleIcon, StarIcon } from '@heroicons/react/24/outline'
 import QuoteForm from '@/components/QuoteForm'
-import dynamic from 'next/dynamic'
-import { useState, useEffect } from 'react'
-
-// Dynamically import mobile form
-const MobileQuoteForm = dynamic(
-  () => import('@/components/MobileQuoteForm'),
-  { ssr: false }
-)
+import { useState } from 'react'
 
 const features = [
   {
@@ -62,24 +55,10 @@ const testimonials = [
 
 export default function Home() {
   const [showForm, setShowForm] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768)
-    }
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
 
   if (showForm) {
-    // Use mobile form on mobile devices
-    if (isMobile) {
-      return <MobileQuoteForm onComplete={() => setShowForm(false)} />
-    }
-
-    // Desktop form
+    // Use the same QuoteForm for both mobile and desktop
+    // QuoteForm is already responsive and handles mobile properly
     return (
       <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
         <div className="container mx-auto px-4 py-8">
