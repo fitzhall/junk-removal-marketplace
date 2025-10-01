@@ -67,12 +67,8 @@ export class VisionAIService {
     // Initialize with service account credentials
     console.log('VisionAIService initializing...')
 
-    if (process.env.GOOGLE_CLOUD_CREDENTIALS) {
-      console.log('Using credentials file:', process.env.GOOGLE_CLOUD_CREDENTIALS)
-      this.client = new ImageAnnotatorClient({
-        keyFilename: process.env.GOOGLE_CLOUD_CREDENTIALS
-      })
-    } else if (process.env.GOOGLE_CLOUD_PROJECT_ID && process.env.GOOGLE_CLOUD_CLIENT_EMAIL && process.env.GOOGLE_CLOUD_PRIVATE_KEY) {
+    // Prioritize individual env vars (for new credentials) over file path
+    if (process.env.GOOGLE_CLOUD_PROJECT_ID && process.env.GOOGLE_CLOUD_CLIENT_EMAIL && process.env.GOOGLE_CLOUD_PRIVATE_KEY) {
       console.log('Using individual env vars for project:', process.env.GOOGLE_CLOUD_PROJECT_ID)
 
       // Fix private key format - Vercel might escape newlines
@@ -95,6 +91,11 @@ export class VisionAIService {
         }
       })
       console.log('VisionAIService initialized with env vars')
+    } else if (process.env.GOOGLE_CLOUD_CREDENTIALS) {
+      console.log('Using credentials file:', process.env.GOOGLE_CLOUD_CREDENTIALS)
+      this.client = new ImageAnnotatorClient({
+        keyFilename: process.env.GOOGLE_CLOUD_CREDENTIALS
+      })
     } else {
       throw new Error('Google Cloud credentials not configured')
     }
