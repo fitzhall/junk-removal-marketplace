@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import imageCompression from 'browser-image-compression'
+import LoadingSkeleton from './LoadingSkeleton'
 import {
   MapPinIcon,
   UserIcon,
@@ -134,9 +135,10 @@ export default function MobileQuoteForm({ onComplete }: MobileQuoteFormProps) {
       setQuote(data)
       setStep(4)
 
-      if (onComplete) {
-        onComplete(data)
-      }
+      // Don't call onComplete immediately - wait for user to finish viewing quote
+      // if (onComplete) {
+      //   onComplete(data)
+      // }
     } catch (err: any) {
       setError(err.message || 'Something went wrong')
     } finally {
@@ -421,8 +423,21 @@ export default function MobileQuoteForm({ onComplete }: MobileQuoteFormProps) {
           </motion.div>
         )}
 
+        {/* Loading State */}
+        {loading && (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="p-4"
+          >
+            <LoadingSkeleton />
+          </motion.div>
+        )}
+
         {/* Step 3: Contact Info */}
-        {step === 3 && (
+        {step === 3 && !loading && (
           <motion.div
             key="step3"
             initial={{ opacity: 0, x: 20 }}
@@ -576,6 +591,16 @@ export default function MobileQuoteForm({ onComplete }: MobileQuoteFormProps) {
                 className="w-full bg-gray-100 text-gray-700 py-4 rounded-xl font-medium"
               >
                 Get Another Quote
+              </button>
+              <button
+                onClick={() => {
+                  if (onComplete) {
+                    onComplete(quote)
+                  }
+                }}
+                className="w-full text-gray-500 py-2 text-sm"
+              >
+                Back to Home
               </button>
             </div>
           </motion.div>
