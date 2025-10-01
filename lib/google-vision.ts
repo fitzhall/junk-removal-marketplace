@@ -31,16 +31,25 @@ const JUNK_CATEGORIES = {
   'monitor': { category: 'electronics', size: 'small', basePrice: 20, volume: 0.05 },
   'printer': { category: 'electronics', size: 'small', basePrice: 20, volume: 0.05 },
 
-  // General items
-  'box': { category: 'general', size: 'small', basePrice: 5, volume: 0.02 },
-  'boxes': { category: 'general', size: 'small', basePrice: 5, volume: 0.02 },
-  'bag': { category: 'general', size: 'small', basePrice: 3, volume: 0.01 },
-  'trash': { category: 'general', size: 'small', basePrice: 3, volume: 0.01 },
-  'garbage': { category: 'general', size: 'small', basePrice: 3, volume: 0.01 },
-  'bicycle': { category: 'general', size: 'medium', basePrice: 25, volume: 0.1 },
-  'bike': { category: 'general', size: 'medium', basePrice: 25, volume: 0.1 },
-  'rug': { category: 'general', size: 'medium', basePrice: 20, volume: 0.05 },
-  'carpet': { category: 'general', size: 'medium', basePrice: 20, volume: 0.05 },
+  // General items - Updated with more realistic pricing
+  'box': { category: 'general', size: 'small', basePrice: 15, volume: 0.02 },
+  'boxes': { category: 'general', size: 'small', basePrice: 20, volume: 0.03 },
+  'bag': { category: 'general', size: 'small', basePrice: 10, volume: 0.01 },
+  'trash': { category: 'general', size: 'small', basePrice: 25, volume: 0.02 },
+  'garbage': { category: 'general', size: 'small', basePrice: 25, volume: 0.02 },
+  'bicycle': { category: 'general', size: 'medium', basePrice: 35, volume: 0.1 },
+  'bike': { category: 'general', size: 'medium', basePrice: 35, volume: 0.1 },
+  'rug': { category: 'general', size: 'medium', basePrice: 30, volume: 0.05 },
+  'carpet': { category: 'general', size: 'medium', basePrice: 30, volume: 0.05 },
+  'clothes': { category: 'general', size: 'small', basePrice: 20, volume: 0.02 },
+  'clothing': { category: 'general', size: 'small', basePrice: 20, volume: 0.02 },
+  'toys': { category: 'general', size: 'small', basePrice: 25, volume: 0.03 },
+  'books': { category: 'general', size: 'small', basePrice: 20, volume: 0.02 },
+  'lamp': { category: 'general', size: 'small', basePrice: 20, volume: 0.02 },
+  'mirror': { category: 'general', size: 'medium', basePrice: 35, volume: 0.05 },
+  'shelf': { category: 'general', size: 'medium', basePrice: 40, volume: 0.1 },
+  'shelves': { category: 'general', size: 'medium', basePrice: 45, volume: 0.12 },
+  'storage': { category: 'general', size: 'medium', basePrice: 50, volume: 0.15 },
 
   // Construction debris
   'wood': { category: 'construction', size: 'varies', basePrice: 30, volume: 0.1 },
@@ -149,10 +158,13 @@ export class VisionAIService {
 
       // Process object localization (more accurate for counting)
       if (result.localizedObjectAnnotations) {
+        console.log('Detected objects from Vision API:')
         for (const object of result.localizedObjectAnnotations) {
           const objectName = object.name?.toLowerCase() || ''
           const confidence = object.score || 0
+          console.log(`  - ${object.name} (confidence: ${(confidence * 100).toFixed(1)}%)`)
 
+          let matched = false
           // Check if this object matches our junk categories
           for (const [key, details] of Object.entries(JUNK_CATEGORIES)) {
             if (objectName.includes(key) || key.includes(objectName)) {
@@ -170,8 +182,34 @@ export class VisionAIService {
                   quantity: 1
                 })
               }
+              matched = true
               break
             }
+          }
+
+          // If no match in our categories, still track it as general furniture/item
+          if (!matched && confidence > 0.5) {
+            // Estimate pricing based on common item types
+            let estimatedPrice = 75 // Default mid-range price
+            let estimatedVolume = 0.2
+
+            // Check for furniture-related words
+            if (objectName.includes('furniture') || objectName.includes('seat') ||
+                objectName.includes('storage') || objectName.includes('shelf')) {
+              estimatedPrice = 85
+              estimatedVolume = 0.25
+            }
+
+            detectedItems.push({
+              name: objectName || 'detected item',
+              confidence,
+              category: 'general',
+              basePrice: estimatedPrice,
+              volume: estimatedVolume,
+              requiresSpecialHandling: false,
+              quantity: 1
+            })
+            console.log(`  Added unmatched item: ${objectName} with estimated price: $${estimatedPrice}`)
           }
         }
       }
@@ -207,14 +245,16 @@ export class VisionAIService {
         item.quantity = itemCounts.get(item.name) || 1
       })
 
-      // If no specific items detected, add general "miscellaneous items"
+      // If no specific items detected, provide more realistic minimum pricing
       if (detectedItems.length === 0) {
+        console.log('No specific items detected, using minimum service pricing')
+        // Minimum service call for junk removal is typically $150-200
         detectedItems.push({
-          name: 'miscellaneous items',
+          name: 'miscellaneous junk load',
           confidence: 0.5,
           category: 'general',
-          basePrice: 50,
-          volume: 0.25,
+          basePrice: 175, // Realistic minimum for a junk removal service call
+          volume: 0.5, // Assume half truck load
           requiresSpecialHandling: false,
           quantity: 1
         })
@@ -222,12 +262,19 @@ export class VisionAIService {
 
       // Calculate totals
       const totalVolume = detectedItems.reduce((sum, item) => sum + (item.volume * item.quantity), 0)
-      const baseTotal = detectedItems.reduce((sum, item) => sum + (item.basePrice * item.quantity), 0)
+      let baseTotal = detectedItems.reduce((sum, item) => sum + (item.basePrice * item.quantity), 0)
 
-      // Add 20% variance for min/max pricing
+      // Apply minimum service fee (typical for junk removal industry)
+      const MINIMUM_SERVICE_FEE = 125
+      if (baseTotal < MINIMUM_SERVICE_FEE) {
+        console.log(`Base total $${baseTotal} is below minimum, applying minimum service fee of $${MINIMUM_SERVICE_FEE}`)
+        baseTotal = MINIMUM_SERVICE_FEE
+      }
+
+      // Add variance for min/max pricing (15-25% variance is more realistic)
       const estimatedPrice = {
-        min: Math.round(baseTotal * 0.8),
-        max: Math.round(baseTotal * 1.2)
+        min: Math.round(baseTotal * 0.85),
+        max: Math.round(baseTotal * 1.25)
       }
 
       const requiresSpecialHandling = detectedItems.some(item => item.requiresSpecialHandling)

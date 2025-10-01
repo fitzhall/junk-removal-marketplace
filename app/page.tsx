@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { TruckIcon, CameraIcon, CurrencyDollarIcon, CheckCircleIcon, StarIcon } from '@heroicons/react/24/outline'
-import QuoteForm from '@/components/QuoteForm'
+import MobileQuoteForm from '@/components/MobileQuoteForm'
 import { useState } from 'react'
 
 const features = [
@@ -68,7 +68,7 @@ export default function Home() {
           >
             ← Back to Home
           </button>
-          <QuoteForm />
+          <MobileQuoteForm onComplete={() => setShowForm(false)} />
         </div>
       </main>
     )
