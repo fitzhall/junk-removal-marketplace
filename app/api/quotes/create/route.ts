@@ -151,8 +151,12 @@ export async function POST(request: NextRequest) {
         )
         console.log(`Analyzing ${photoBuffers.length} images with total size: ${photoBuffers.reduce((sum, buf) => sum + buf.length, 0)} bytes`)
 
-        analysisResults = await visionService.analyzeImages(photoBuffers)
-        console.log('AI analysis results:', analysisResults)
+        // Pass location for advanced pricing
+        analysisResults = await visionService.analyzeImages(photoBuffers, {
+          state: location?.state,
+          zipCode: location?.zipCode
+        })
+        console.log('AI analysis results with location-based pricing:', analysisResults)
 
         // Save quote to database as a lead (no user association needed)
         let response: any

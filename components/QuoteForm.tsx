@@ -11,6 +11,7 @@ import ErrorDisplay from './ErrorDisplay'
 import ApiTester from './ApiTester'
 import LoadingSkeleton from './LoadingSkeleton'
 import ItemEditor from './ItemEditor'
+import PricingBreakdown from './PricingBreakdown'
 import {
   MapPinIcon,
   UserIcon,
@@ -673,11 +674,24 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
               </motion.div>
             )}
 
+            {/* Pricing Breakdown */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="grid md:grid-cols-2 gap-4"
+            >
+              <PricingBreakdown
+                breakdown={(quote as any).breakdown}
+                truckLoads={(quote as any).truckLoads}
+                showDetails={!!(quote as any).breakdown}
+              />
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="grid md:grid-cols-2 gap-4 mt-8"
             >
               <button className="bg-gray-100 text-gray-700 py-4 px-6 rounded-xl font-semibold text-lg hover:bg-gray-200 transition-colors">
                 Save Quote for Later

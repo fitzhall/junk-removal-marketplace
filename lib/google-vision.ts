@@ -1,4 +1,5 @@
 import { ImageAnnotatorClient } from '@google-cloud/vision'
+import { PricingEngine } from './pricing-engine'
 
 // Junk item categories with typical sizes and pricing
 const JUNK_CATEGORIES = {
@@ -71,8 +72,10 @@ interface DetectedItem {
 
 export class VisionAIService {
   private client: ImageAnnotatorClient
+  private pricingEngine: PricingEngine
 
   constructor() {
+    this.pricingEngine = new PricingEngine()
     // Initialize with service account credentials
     console.log('VisionAIService initializing...')
 
@@ -144,11 +147,15 @@ export class VisionAIService {
     return this.analyzeImages([imageBuffer])
   }
 
-  async analyzeImages(imageBuffers: Buffer[]): Promise<{
+  async analyzeImages(
+    imageBuffers: Buffer[],
+    location?: { state?: string; zipCode?: string }
+  ): Promise<{
     items: DetectedItem[]
     totalVolume: number
     estimatedPrice: { min: number; max: number }
     requiresSpecialHandling: boolean
+    pricingDetails?: any
   }> {
     try {
       const globalItemMap = new Map<string, DetectedItem>()
@@ -259,21 +266,49 @@ export class VisionAIService {
         })
       }
 
-      // Calculate totals
-      const totalVolume = detectedItems.reduce((sum, item) => sum + (item.volume * item.quantity), 0)
-      let baseTotal = detectedItems.reduce((sum, item) => sum + (item.basePrice * item.quantity), 0)
+      // Use advanced pricing engine if location is provided
+      let estimatedPrice
+      let pricingDetails
+      let totalVolume
 
-      // Apply minimum service fee
-      const MINIMUM_SERVICE_FEE = 125
-      if (baseTotal < MINIMUM_SERVICE_FEE) {
-        console.log(`Base total $${baseTotal} is below minimum, applying minimum service fee of $${MINIMUM_SERVICE_FEE}`)
-        baseTotal = MINIMUM_SERVICE_FEE
-      }
+      if (location?.state) {
+        // Use advanced pricing with location
+        const quote = this.pricingEngine.calculateQuote(
+          detectedItems.map(item => ({
+            type: item.name,
+            quantity: item.quantity,
+            category: item.category,
+            confidence: item.confidence
+          })),
+          location,
+          {} // options can be added later
+        )
 
-      // Add variance for min/max pricing
-      const estimatedPrice = {
-        min: Math.round(baseTotal * 0.85),
-        max: Math.round(baseTotal * 1.25)
+        estimatedPrice = {
+          min: quote.min,
+          max: quote.max
+        }
+        totalVolume = parseFloat(quote.breakdown.totalVolume)
+        pricingDetails = quote
+
+        console.log(`Advanced pricing calculated with location (${location.state}):`, quote.breakdown)
+      } else {
+        // Fallback to basic pricing
+        totalVolume = detectedItems.reduce((sum, item) => sum + (item.volume * item.quantity), 0)
+        let baseTotal = detectedItems.reduce((sum, item) => sum + (item.basePrice * item.quantity), 0)
+
+        // Apply minimum service fee
+        const MINIMUM_SERVICE_FEE = 125
+        if (baseTotal < MINIMUM_SERVICE_FEE) {
+          console.log(`Base total $${baseTotal} is below minimum, applying minimum service fee of $${MINIMUM_SERVICE_FEE}`)
+          baseTotal = MINIMUM_SERVICE_FEE
+        }
+
+        // Add variance for min/max pricing
+        estimatedPrice = {
+          min: Math.round(baseTotal * 0.85),
+          max: Math.round(baseTotal * 1.25)
+        }
       }
 
       const requiresSpecialHandling = detectedItems.some(item => item.requiresSpecialHandling)
@@ -284,7 +319,8 @@ export class VisionAIService {
         items: detectedItems,
         totalVolume,
         estimatedPrice,
-        requiresSpecialHandling
+        requiresSpecialHandling,
+        pricingDetails
       }
     } catch (error: any) {
       console.error('Google Vision API error:', {
