@@ -145,12 +145,13 @@ export async function POST(request: NextRequest) {
         })
         const visionService = new VisionAIService()
 
-        // Analyze the first photo (you could analyze multiple and combine results)
-        const firstPhoto = photos[0]
-        const buffer = Buffer.from(await firstPhoto.arrayBuffer())
-        console.log('Image buffer size:', buffer.length)
+        // Analyze all photos together for better detection
+        const photoBuffers = await Promise.all(
+          photos.map(async (photo) => Buffer.from(await photo.arrayBuffer()))
+        )
+        console.log(`Analyzing ${photoBuffers.length} images with total size: ${photoBuffers.reduce((sum, buf) => sum + buf.length, 0)} bytes`)
 
-        analysisResults = await visionService.analyzeImage(buffer)
+        analysisResults = await visionService.analyzeImages(photoBuffers)
         console.log('AI analysis results:', analysisResults)
 
         // Save quote to database as a lead (no user association needed)

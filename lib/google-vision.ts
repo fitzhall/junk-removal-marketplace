@@ -141,120 +141,106 @@ export class VisionAIService {
     estimatedPrice: { min: number; max: number }
     requiresSpecialHandling: boolean
   }> {
+    return this.analyzeImages([imageBuffer])
+  }
+
+  async analyzeImages(imageBuffers: Buffer[]): Promise<{
+    items: DetectedItem[]
+    totalVolume: number
+    estimatedPrice: { min: number; max: number }
+    requiresSpecialHandling: boolean
+  }> {
     try {
-      // Perform multiple detection types for better accuracy
-      const [result] = await this.client.annotateImage({
-        image: { content: imageBuffer.toString('base64') },
-        features: [
-          { type: 'LABEL_DETECTION', maxResults: 20 },
-          { type: 'OBJECT_LOCALIZATION', maxResults: 20 },
-          { type: 'TEXT_DETECTION', maxResults: 10 }
-        ]
-      })
+      const globalItemMap = new Map<string, DetectedItem>()
 
-      // Process detected labels and objects
-      const detectedItems: DetectedItem[] = []
-      const itemCounts = new Map<string, number>()
+      console.log(`Analyzing ${imageBuffers.length} images...`)
 
-      // Process object localization (more accurate for counting)
-      if (result.localizedObjectAnnotations) {
-        console.log('Detected objects from Vision API:')
-        for (const object of result.localizedObjectAnnotations) {
-          const objectName = object.name?.toLowerCase() || ''
-          const confidence = object.score || 0
-          console.log(`  - ${object.name} (confidence: ${(confidence * 100).toFixed(1)}%)`)
+      // Analyze each image
+      for (let i = 0; i < imageBuffers.length; i++) {
+        console.log(`Processing image ${i + 1}/${imageBuffers.length}`)
 
-          let matched = false
-          // Check if this object matches our junk categories
-          for (const [key, details] of Object.entries(JUNK_CATEGORIES)) {
-            if (objectName.includes(key) || key.includes(objectName)) {
-              const currentCount = itemCounts.get(key) || 0
-              itemCounts.set(key, currentCount + 1)
+        // Perform multiple detection types for better accuracy
+        const [result] = await this.client.annotateImage({
+          image: { content: imageBuffers[i].toString('base64') },
+          features: [
+            { type: 'LABEL_DETECTION', maxResults: 20 },
+            { type: 'OBJECT_LOCALIZATION', maxResults: 20 },
+            { type: 'TEXT_DETECTION', maxResults: 10 }
+          ]
+        })
 
-              if (currentCount === 0) { // Only add once, but track quantity
-                detectedItems.push({
-                  name: key,
-                  confidence,
-                  category: details.category,
-                  basePrice: details.basePrice,
-                  volume: details.volume,
-                  requiresSpecialHandling: (details as any).special || false,
-                  quantity: 1
-                })
+        // Process object localization (more accurate for counting)
+        if (result.localizedObjectAnnotations) {
+          console.log(`Image ${i + 1} detected objects:`)
+          for (const object of result.localizedObjectAnnotations) {
+            const objectName = object.name?.toLowerCase() || ''
+            const confidence = object.score || 0
+            console.log(`  - ${object.name} (confidence: ${(confidence * 100).toFixed(1)}%)`)
+
+            // Check if this object matches our junk categories
+            for (const [key, details] of Object.entries(JUNK_CATEGORIES)) {
+              if (objectName.includes(key) || key.includes(objectName)) {
+                if (globalItemMap.has(key)) {
+                  // Increment quantity if item already exists
+                  const existingItem = globalItemMap.get(key)!
+                  existingItem.quantity += 1
+                  existingItem.confidence = Math.max(existingItem.confidence, confidence)
+                } else {
+                  // Add new item
+                  globalItemMap.set(key, {
+                    name: key,
+                    confidence,
+                    category: details.category,
+                    basePrice: details.basePrice,
+                    volume: details.volume,
+                    requiresSpecialHandling: (details as any).special || false,
+                    quantity: 1
+                  })
+                }
+                break
               }
-              matched = true
-              break
             }
-          }
-
-          // If no match in our categories, still track it as general furniture/item
-          if (!matched && confidence > 0.5) {
-            // Estimate pricing based on common item types
-            let estimatedPrice = 75 // Default mid-range price
-            let estimatedVolume = 0.2
-
-            // Check for furniture-related words
-            if (objectName.includes('furniture') || objectName.includes('seat') ||
-                objectName.includes('storage') || objectName.includes('shelf')) {
-              estimatedPrice = 85
-              estimatedVolume = 0.25
-            }
-
-            detectedItems.push({
-              name: objectName || 'detected item',
-              confidence,
-              category: 'general',
-              basePrice: estimatedPrice,
-              volume: estimatedVolume,
-              requiresSpecialHandling: false,
-              quantity: 1
-            })
-            console.log(`  Added unmatched item: ${objectName} with estimated price: $${estimatedPrice}`)
           }
         }
-      }
 
-      // Process labels as fallback
-      if (result.labelAnnotations && detectedItems.length === 0) {
-        for (const label of result.labelAnnotations) {
-          const labelName = label.description?.toLowerCase() || ''
-          const confidence = label.score || 0
+        // Process labels as additional context
+        if (result.labelAnnotations && globalItemMap.size === 0) {
+          for (const label of result.labelAnnotations) {
+            const labelName = label.description?.toLowerCase() || ''
+            const confidence = label.score || 0
 
-          for (const [key, details] of Object.entries(JUNK_CATEGORIES)) {
-            if (labelName.includes(key) || key.includes(labelName)) {
-              if (!itemCounts.has(key)) {
-                itemCounts.set(key, 1)
-                detectedItems.push({
-                  name: key,
-                  confidence,
-                  category: details.category,
-                  basePrice: details.basePrice,
-                  volume: details.volume,
-                  requiresSpecialHandling: (details as any).special || false,
-                  quantity: 1
-                })
+            for (const [key, details] of Object.entries(JUNK_CATEGORIES)) {
+              if (labelName.includes(key) || key.includes(labelName)) {
+                if (!globalItemMap.has(key)) {
+                  globalItemMap.set(key, {
+                    name: key,
+                    confidence,
+                    category: details.category,
+                    basePrice: details.basePrice,
+                    volume: details.volume,
+                    requiresSpecialHandling: (details as any).special || false,
+                    quantity: 1
+                  })
+                }
+                break
               }
-              break
             }
           }
         }
       }
 
-      // Update quantities
-      detectedItems.forEach(item => {
-        item.quantity = itemCounts.get(item.name) || 1
-      })
+      // Convert map to array
+      const detectedItems = Array.from(globalItemMap.values())
 
-      // If no specific items detected, provide more realistic minimum pricing
+      // If no specific items detected, provide minimum pricing
       if (detectedItems.length === 0) {
         console.log('No specific items detected, using minimum service pricing')
-        // Minimum service call for junk removal is typically $150-200
         detectedItems.push({
           name: 'miscellaneous junk load',
           confidence: 0.5,
           category: 'general',
-          basePrice: 175, // Realistic minimum for a junk removal service call
-          volume: 0.5, // Assume half truck load
+          basePrice: 175,
+          volume: 0.5,
           requiresSpecialHandling: false,
           quantity: 1
         })
@@ -264,20 +250,22 @@ export class VisionAIService {
       const totalVolume = detectedItems.reduce((sum, item) => sum + (item.volume * item.quantity), 0)
       let baseTotal = detectedItems.reduce((sum, item) => sum + (item.basePrice * item.quantity), 0)
 
-      // Apply minimum service fee (typical for junk removal industry)
+      // Apply minimum service fee
       const MINIMUM_SERVICE_FEE = 125
       if (baseTotal < MINIMUM_SERVICE_FEE) {
         console.log(`Base total $${baseTotal} is below minimum, applying minimum service fee of $${MINIMUM_SERVICE_FEE}`)
         baseTotal = MINIMUM_SERVICE_FEE
       }
 
-      // Add variance for min/max pricing (15-25% variance is more realistic)
+      // Add variance for min/max pricing
       const estimatedPrice = {
         min: Math.round(baseTotal * 0.85),
         max: Math.round(baseTotal * 1.25)
       }
 
       const requiresSpecialHandling = detectedItems.some(item => item.requiresSpecialHandling)
+
+      console.log(`Analysis complete: ${detectedItems.length} items detected, total volume: ${totalVolume.toFixed(2)}`)
 
       return {
         items: detectedItems,
@@ -294,7 +282,7 @@ export class VisionAIService {
       })
 
       // Preserve the original error message and details
-      const errorMessage = error.message || 'Failed to analyze image'
+      const errorMessage = error.message || 'Failed to analyze images'
       const enhancedError = new Error(errorMessage)
       ;(enhancedError as any).code = error.code
       ;(enhancedError as any).details = error.details

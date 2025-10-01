@@ -9,13 +9,16 @@ import MobileHandoff from './MobileHandoff'
 import DebugPanel from './DebugPanel'
 import ErrorDisplay from './ErrorDisplay'
 import ApiTester from './ApiTester'
+import LoadingSkeleton from './LoadingSkeleton'
+import ItemEditor from './ItemEditor'
 import {
   MapPinIcon,
   UserIcon,
   CameraIcon,
   SparklesIcon,
   CheckIcon,
-  ArrowRightIcon
+  ArrowRightIcon,
+  PencilSquareIcon
 } from '@heroicons/react/24/outline'
 import { Loader2 } from 'lucide-react'
 
@@ -34,8 +37,9 @@ export default function QuoteForm() {
     phone: ''
   })
   const [loading, setLoading] = useState(false)
-  const [quote, setQuote] = useState<{ priceMin: number; priceMax: number; items: Array<{ type: string; quantity: number }> } | null>(null)
+  const [quote, setQuote] = useState<{ priceMin: number; priceMax: number; items: Array<{ type: string; quantity: number; confidence?: number; requiresSpecialHandling?: boolean; category?: string }> } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [showItemEditor, setShowItemEditor] = useState(false)
 
   const steps = [
     { number: 1, title: 'Photos', icon: CameraIcon },
@@ -206,13 +210,13 @@ export default function QuoteForm() {
       })
 
       if (data.success && data.priceMin !== undefined && data.priceMax !== undefined) {
-        console.log('Setting quote and moving to step 4')
+        console.log('Setting quote and showing item editor')
         setQuote(data)
+        // Show item editor after getting initial quote
+        setShowItemEditor(true)
         // Force a small delay to ensure state update completes
         setTimeout(() => {
-          setStep(4)
-          console.log('Step updated to 4, quote should be visible now')
-          // Scroll to top on mobile to ensure quote is visible
+          // Scroll to top on mobile to ensure editor is visible
           window.scrollTo({ top: 0, behavior: 'smooth' })
         }, 100)
       } else {
@@ -435,7 +439,7 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
         )}
 
         {/* Step 3: Customer Info */}
-        {step === 3 && (
+        {step === 3 && !loading && (
           <motion.form
             key="step3"
             initial={{ opacity: 0, x: 20 }}
@@ -527,8 +531,41 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
           </motion.form>
         )}
 
+        {/* Loading State */}
+        {loading && (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <LoadingSkeleton />
+          </motion.div>
+        )}
+
+        {/* Item Editor */}
+        {showItemEditor && quote && !loading && (
+          <motion.div
+            key="itemEditor"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+          >
+            <ItemEditor
+              items={quote.items || []}
+              onUpdate={(updatedItems) => {
+                setQuote({ ...quote, items: updatedItems })
+              }}
+              onConfirm={() => {
+                setShowItemEditor(false)
+                setStep(4)
+              }}
+            />
+          </motion.div>
+        )}
+
         {/* Step 4: Quote Display */}
-        {step === 4 && quote && (
+        {step === 4 && quote && !showItemEditor && (
           <motion.div
             key="step4"
             initial={{ opacity: 0, scale: 0.95 }}
@@ -576,15 +613,63 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
                 transition={{ delay: 0.4 }}
                 className="mb-8"
               >
-                <h3 className="font-semibold text-lg mb-4">AI Detected Items:</h3>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-semibold text-lg">AI Detected Items:</h3>
+                  <button
+                    onClick={() => setShowItemEditor(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                  >
+                    <PencilSquareIcon className="w-4 h-4" />
+                    Edit Items
+                  </button>
+                </div>
                 <div className="space-y-3">
                   {quote.items.map((item, index) => (
-                    <div key={index} className="flex justify-between items-center p-4 bg-gray-50 rounded-xl">
-                      <span className="font-medium">{item.type}</span>
-                      <span className="text-gray-600">Qty: {item.quantity}</span>
-                    </div>
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.4 + index * 0.1 }}
+                      className="flex justify-between items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="font-medium">{item.type}</span>
+                        {item.requiresSpecialHandling && (
+                          <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
+                            Special Handling
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-4">
+                        {item.confidence !== undefined && (
+                          <div className="flex items-center gap-2">
+                            <div className="w-20 bg-gray-200 rounded-full h-2">
+                              <div
+                                className={`h-2 rounded-full transition-all ${
+                                  item.confidence >= 90 ? 'bg-green-500' :
+                                  item.confidence >= 70 ? 'bg-yellow-500' :
+                                  'bg-orange-500'
+                                }`}
+                                style={{ width: `${item.confidence}%` }}
+                              />
+                            </div>
+                            <span className={`text-sm font-medium ${
+                              item.confidence >= 90 ? 'text-green-600' :
+                              item.confidence >= 70 ? 'text-yellow-600' :
+                              'text-orange-600'
+                            }`}>
+                              {item.confidence}%
+                            </span>
+                          </div>
+                        )}
+                        <span className="text-gray-600 font-medium">Qty: {item.quantity}</span>
+                      </div>
+                    </motion.div>
                   ))}
                 </div>
+                <p className="text-sm text-gray-500 mt-3">
+                  Confidence score indicates AI detection accuracy
+                </p>
               </motion.div>
             )}
 
