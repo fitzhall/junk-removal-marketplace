@@ -55,7 +55,15 @@ export default function QuoteForm() {
 
   const handleCustomerInfoSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    e.stopPropagation() // Prevent event bubbling
+
+    console.log('=== Form Submit Started ===')
+    console.log('Photos:', photos.length)
+    console.log('Location:', location)
+    console.log('Customer:', customerInfo)
+
     setLoading(true)
+    setError(null) // Clear any previous errors
 
     try {
       // Check file sizes before uploading
@@ -188,10 +196,26 @@ export default function QuoteForm() {
         setError(`Vision API Error: ${data.details?.message || 'Unknown error'}. Using mock data for demonstration.`)
       }
 
-      if (data.success && data.priceMin && data.priceMax) {
+      // Log what we received for debugging
+      console.log('Quote response received:', {
+        success: data.success,
+        priceMin: data.priceMin,
+        priceMax: data.priceMax,
+        items: data.items,
+        hasData: !!data
+      })
+
+      if (data.success && data.priceMin !== undefined && data.priceMax !== undefined) {
+        console.log('Setting quote and moving to step 4')
         setQuote(data)
-        setStep(4)
-      } else if (!data.mockData) {
+        // Force a small delay to ensure state update completes
+        setTimeout(() => {
+          setStep(4)
+          console.log('Step updated to 4, quote should be visible now')
+          // Scroll to top on mobile to ensure quote is visible
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+        }, 100)
+      } else {
         console.error('Invalid response format:', data)
         // Show more detail about what's wrong
         const errorMsg = `Response missing required fields:
