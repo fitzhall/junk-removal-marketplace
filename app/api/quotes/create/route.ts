@@ -33,17 +33,26 @@ function mapVolumeToEnum(volume: string): VolumeSize {
   return volumeMap[volume] || VolumeSize.HALF
 }
 
-function getMockResponse(location: LocationData, customerInfo: CustomerInfoData) {
+function getMockResponse(location: LocationData, customerInfo: CustomerInfoData, photoCount: number) {
+  // Generate items based on photo count (1 item per photo)
+  const mockItems = Array.from({ length: photoCount }, (_, i) => {
+    const itemTypes = [
+      { type: 'Furniture', category: 'furniture', confidence: 90 },
+      { type: 'Appliance', category: 'appliance', confidence: 85 },
+      { type: 'Boxes', category: 'general', confidence: 88 },
+      { type: 'Mattress', category: 'furniture', confidence: 92 },
+      { type: 'Electronics', category: 'electronics', confidence: 87 }
+    ]
+    const item = itemTypes[i % itemTypes.length]
+    return { ...item, quantity: 1 }
+  })
+
   return {
     success: true,
     id: Math.random().toString(36).substring(7),
     priceMin: 150,
     priceMax: 250,
-    items: [
-      { type: 'Couch', quantity: 1, category: 'furniture', confidence: 95 },
-      { type: 'Mattress', quantity: 1, category: 'furniture', confidence: 88 },
-      { type: 'Boxes', quantity: 3, category: 'general', confidence: 92 }
-    ],
+    items: mockItems,
     volume: 'HALF',
     estimatedTime: '2-3 hours',
     requiresSpecialHandling: false,
@@ -288,7 +297,7 @@ export async function POST(request: NextRequest) {
         })
 
         // Return error details in response for debugging (remove in production)
-        const mockResponse = getMockResponse(location, customerInfo)
+        const mockResponse = getMockResponse(location, customerInfo, photos.length)
         return NextResponse.json({
           ...mockResponse,
           success: true, // Keep success true so UI still works
@@ -314,7 +323,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Mock response if Google Vision is not configured
-    const mockResponse = getMockResponse(location, customerInfo)
+    const mockResponse = getMockResponse(location, customerInfo, photos.length)
 
     // Try to save mock data to database
     try {

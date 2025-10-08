@@ -618,9 +618,6 @@ export default function MobileQuoteForm({ onComplete }: MobileQuoteFormProps) {
 
             {/* Action Buttons */}
             <div className="space-y-3">
-              <button className="w-full bg-green-600 text-white py-4 rounded-xl font-medium">
-                View Incoming Bids
-              </button>
               <button
                 onClick={() => {
                   setStep(1)
@@ -628,7 +625,7 @@ export default function MobileQuoteForm({ onComplete }: MobileQuoteFormProps) {
                   setPhotoUrls([])
                   setQuote(null)
                 }}
-                className="w-full bg-gray-100 text-gray-700 py-4 rounded-xl font-medium"
+                className="w-full bg-green-600 text-white py-4 rounded-xl font-medium"
               >
                 Get Another Quote
               </button>
