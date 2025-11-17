@@ -1,4 +1,4 @@
-// import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 
 interface Provider {
   id: string
@@ -73,41 +73,39 @@ export class LeadDistributionService {
   /**
    * Get providers eligible for receiving leads in a specific area
    */
-  private async getEligibleProviders(_zipCode: string): Promise<Provider[]> {
-    // For demo, return mock providers
-    // In production, query from database based on service areas and active status
-    return [
-      {
-        id: 'provider-1',
-        subscriptionTier: 'ELITE' as const,
-        serviceAreas: ['94102', '94103', '94104'],
-        leadCredits: 35,
-        responseTime: 15,
-        acceptanceRate: 85,
-        autoBidEnabled: true,
-        maxBidAmount: 75
+  private async getEligibleProviders(zipCode: string): Promise<Provider[]> {
+    // Query real providers from database
+    const providers = await prisma.provider.findMany({
+      where: {
+        status: 'ACTIVE',
+        serviceAreas: {
+          some: {
+            zipCode: zipCode
+          }
+        }
       },
-      {
-        id: 'provider-2',
-        subscriptionTier: 'PROFESSIONAL' as const,
-        serviceAreas: ['94102', '94105'],
-        leadCredits: 12,
-        responseTime: 30,
-        acceptanceRate: 72,
-        autoBidEnabled: true,
-        maxBidAmount: 50
-      },
-      {
-        id: 'provider-3',
-        subscriptionTier: 'BASIC' as const,
-        serviceAreas: ['94102'],
-        leadCredits: 3,
-        responseTime: 60,
-        acceptanceRate: 65,
-        autoBidEnabled: false,
-        maxBidAmount: 25
+      include: {
+        serviceAreas: true,
+        user: {
+          select: {
+            email: true,
+            phone: true
+          }
+        }
       }
-    ].filter(p => p.leadCredits > 0) // Only providers with credits
+    })
+
+    // Map to the format expected by this service
+    return providers.map((p): Provider => ({
+      id: p.id,
+      subscriptionTier: 'PROFESSIONAL' as const, // TODO: Add tier to Provider model
+      serviceAreas: p.serviceAreas.map((sa) => sa.zipCode),
+      leadCredits: 100, // TODO: Add credits to Provider model
+      responseTime: 30, // Average response time in minutes
+      acceptanceRate: p.totalJobs > 0 ? (p.totalJobs / (p.totalJobs + 10)) * 100 : 70, // Estimate
+      autoBidEnabled: p.autoBidEnabled,
+      maxBidAmount: p.bidFixedAmount || 75
+    })).filter((p) => p.leadCredits > 0)
   }
 
   /**

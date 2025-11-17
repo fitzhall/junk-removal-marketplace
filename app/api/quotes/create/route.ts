@@ -4,7 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { VolumeSize } from '@prisma/client'
 import { cloudinaryService } from '@/lib/cloudinary'
 import { leadService } from '@/lib/lead-service'
-import { autoAssignQuote } from '@/lib/auto-assignment'
+import { distributeLeadToProviders } from '@/lib/lead-distribution-new'
+import { sendLeadNotification } from '@/lib/email-service'
 
 interface LocationData {
   address?: string
@@ -110,6 +111,7 @@ export async function POST(request: NextRequest) {
     // Parse location and customer info with better error handling
     let location: LocationData = {}
     let customerInfo: CustomerInfoData = {}
+    let companyId: string | null = null
 
     try {
       const locationStr = formData.get('location') as string
@@ -123,7 +125,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const customerInfoStr = formData.get('customerInfo') as string
+      const customerInfoStr = formData.get('customer') as string || formData.get('customerInfo') as string
       if (customerInfoStr) {
         console.log('Parsing customerInfo:', customerInfoStr)
         customerInfo = JSON.parse(customerInfoStr)
@@ -132,6 +134,10 @@ export async function POST(request: NextRequest) {
       console.error('Failed to parse customerInfo:', parseError)
       // Continue with empty customerInfo rather than failing
     }
+
+    // Get company ID from form data (for white-label widget)
+    companyId = formData.get('companyId') as string | null
+    console.log('Company ID:', companyId)
 
     // Initialize Vision AI service if credentials are available
     let analysisResults = null
@@ -174,6 +180,7 @@ export async function POST(request: NextRequest) {
           const savedQuote = await prisma.quote.create({
             data: {
               status: 'PENDING',
+              companyId: companyId, // Link to company for white-label
               customerName: customerInfo?.name || null,
               customerEmail: customerInfo?.email || null,
               customerPhone: customerInfo?.phone || null,
@@ -190,7 +197,7 @@ export async function POST(request: NextRequest) {
               preferredDate: customerInfo?.preferredDate ? new Date(customerInfo.preferredDate) : null,
               preferredTimeWindow: customerInfo?.preferredTime || null,
               isUrgent: customerInfo?.isUrgent || false,
-              source: 'web',
+              source: companyId ? 'widget' : 'web',
               items: {
                 create: analysisResults.items.map((item: any) => ({
                   itemType: item.name,
@@ -208,10 +215,45 @@ export async function POST(request: NextRequest) {
             }
           })
 
-          // Auto-assign to best provider
-          let assignmentResult
+          // Send email notification if this is from a widget (companyId exists)
+          if (companyId) {
+            try {
+              const company = await prisma.company.findUnique({
+                where: { id: companyId }
+              })
+
+              if (company && company.notificationEmail) {
+                await sendLeadNotification({
+                  companyName: company.businessName,
+                  companyEmail: company.notificationEmail,
+                  customerName: savedQuote.customerName || 'Unknown',
+                  customerPhone: savedQuote.customerPhone || '',
+                  customerEmail: savedQuote.customerEmail || undefined,
+                  truckLoad: savedQuote.estimatedVolume || 'HALF',
+                  priceMin: savedQuote.priceRangeMin || 0,
+                  priceMax: savedQuote.priceRangeMax || 0,
+                  address: savedQuote.pickupAddress || undefined,
+                  city: savedQuote.pickupCity || undefined,
+                  state: savedQuote.pickupState || undefined,
+                  zipCode: savedQuote.pickupZip || undefined,
+                  photoUrls: Array.isArray(uploadedPhotoUrls) ? uploadedPhotoUrls : [],
+                  items: savedQuote.items.map(item => ({
+                    type: item.itemType,
+                    quantity: item.quantity
+                  }))
+                })
+                console.log('✅ Lead notification sent to', company.notificationEmail)
+              }
+            } catch (emailError) {
+              console.error('Failed to send email notification:', emailError)
+              // Don't fail the request if email fails
+            }
+          }
+
+          // Distribute lead to eligible providers
+          let distributionResult
           try {
-            assignmentResult = await autoAssignQuote({
+            distributionResult = await distributeLeadToProviders({
               id: savedQuote.id,
               pickupZip: savedQuote.pickupZip || '',
               priceRangeMin: savedQuote.priceRangeMin,
@@ -221,10 +263,10 @@ export async function POST(request: NextRequest) {
                 quantity: item.quantity
               }))
             })
-            console.log('Auto-assignment result:', assignmentResult)
-          } catch (assignError) {
-            console.error('Failed to auto-assign quote:', assignError)
-            // Continue even if assignment fails
+            console.log('Lead distribution result:', distributionResult)
+          } catch (distError) {
+            console.error('Failed to distribute lead:', distError)
+            // Continue even if distribution fails
           }
 
           // Format the response with database ID and pricing details
@@ -246,12 +288,10 @@ export async function POST(request: NextRequest) {
             // Include pricing breakdown if available
             breakdown: analysisResults.pricingDetails?.breakdown,
             truckLoads: analysisResults.pricingDetails?.truckLoads,
-            // Include assignment info if successful
-            assignment: assignmentResult?.success ? {
-              providerId: assignmentResult.providerId,
-              providerName: assignmentResult.providerName,
-              finalPrice: assignmentResult.bidAmount,
-              jobId: assignmentResult.jobId
+            // Include distribution info if successful
+            distribution: distributionResult?.success ? {
+              providersNotified: distributionResult.providersNotified,
+              providers: distributionResult.providers
             } : null,
             location,
             customerInfo
@@ -364,9 +404,9 @@ export async function POST(request: NextRequest) {
       mockResponse.id = savedQuote.id
       console.log('Saved mock quote to database:', savedQuote.id)
 
-      // Auto-assign to best provider
+      // Distribute lead to eligible providers
       try {
-        const assignmentResult = await autoAssignQuote({
+        const distributionResult = await distributeLeadToProviders({
           id: savedQuote.id,
           pickupZip: savedQuote.pickupZip || '',
           priceRangeMin: savedQuote.priceRangeMin,
@@ -376,18 +416,16 @@ export async function POST(request: NextRequest) {
             quantity: item.quantity
           }))
         })
-        console.log('Auto-assignment result:', assignmentResult)
+        console.log('Lead distribution result:', distributionResult)
 
-        if (assignmentResult.success) {
-          mockResponse.assignment = {
-            providerId: assignmentResult.providerId,
-            providerName: assignmentResult.providerName,
-            finalPrice: assignmentResult.bidAmount,
-            jobId: assignmentResult.jobId
+        if (distributionResult.success) {
+          mockResponse.distribution = {
+            providersNotified: distributionResult.providersNotified,
+            providers: distributionResult.providers
           }
         }
-      } catch (assignError) {
-        console.error('Failed to auto-assign quote:', assignError)
+      } catch (distError) {
+        console.error('Failed to distribute lead:', distError)
       }
     } catch (dbError) {
       console.error('Failed to save mock data to database:', dbError)

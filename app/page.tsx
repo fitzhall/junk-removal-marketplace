@@ -123,10 +123,11 @@ export default function Home() {
               <button
                 onClick={() => setShowForm(true)}
                 className="bg-gradient-to-r from-green-600 to-emerald-600 text-white text-base sm:text-lg px-6 sm:px-10 py-4 sm:py-5 rounded-xl sm:rounded-2xl font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 flex items-center gap-2 sm:gap-3 justify-center w-full sm:w-auto glow"
+                aria-label="Get your free junk removal quote"
               >
-                <CameraIcon className="w-5 sm:w-6 h-5 sm:h-6" />
+                <CameraIcon className="w-5 sm:w-6 h-5 sm:h-6" aria-hidden="true" />
                 Get Your Free Quote
-                <span className="text-xl sm:text-2xl">→</span>
+                <span className="text-xl sm:text-2xl" aria-hidden="true">→</span>
               </button>
             </motion.div>
 
@@ -138,7 +139,7 @@ export default function Home() {
       </section>
 
       {/* How It Works */}
-      <section className="py-20 px-4 bg-white/70 backdrop-blur-sm">
+      <section className="py-20 px-4 bg-white/70 backdrop-blur-sm" aria-labelledby="how-it-works-heading">
         <div className="container mx-auto">
           <motion.div
             initial={{ opacity: 0 }}
@@ -146,7 +147,7 @@ export default function Home() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+            <h2 id="how-it-works-heading" className="text-4xl md:text-5xl font-bold mb-4">
               How It Works
             </h2>
             <p className="text-xl text-gray-600">Three simple steps to a clutter-free space</p>
@@ -181,15 +182,15 @@ export default function Home() {
                   </div>
                 )}
 
-                <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow card-hover">
-                  <div className="w-20 h-20 bg-gradient-to-br from-green-100 to-emerald-100 rounded-2xl flex items-center justify-center mb-6">
+                <article className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow card-hover">
+                  <div className="w-20 h-20 bg-gradient-to-br from-green-100 to-emerald-100 rounded-2xl flex items-center justify-center mb-6" aria-hidden="true">
                     <feature.icon className="w-10 h-10 text-green-600" />
                   </div>
                   <h3 className="text-2xl font-semibold mb-3">
                     {index + 1}. {feature.title}
                   </h3>
                   <p className="text-gray-600">{feature.description}</p>
-                </div>
+                </article>
               </motion.div>
             ))}
           </div>
@@ -197,7 +198,7 @@ export default function Home() {
       </section>
 
       {/* Benefits */}
-      <section className="py-20 px-4">
+      <section className="py-20 px-4" aria-labelledby="benefits-heading">
         <div className="container mx-auto max-w-6xl">
           <div className="grid md:grid-cols-2 gap-16 items-center">
             <motion.div
@@ -205,7 +206,7 @@ export default function Home() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
             >
-              <h2 className="text-4xl md:text-5xl font-bold mb-8">
+              <h2 id="benefits-heading" className="text-4xl md:text-5xl font-bold mb-8">
                 Why Choose Our
                 <span className="text-gradient"> Smart Platform?</span>
               </h2>
@@ -259,7 +260,7 @@ export default function Home() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-20 px-4 bg-gradient-to-b from-white to-gray-50">
+      <section className="py-20 px-4 bg-gradient-to-b from-white to-gray-50" aria-labelledby="testimonials-heading">
         <div className="container mx-auto max-w-6xl">
           <motion.div
             initial={{ opacity: 0 }}
@@ -267,7 +268,7 @@ export default function Home() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+            <h2 id="testimonials-heading" className="text-4xl md:text-5xl font-bold mb-4">
               Loved by Thousands
             </h2>
             <p className="text-xl text-gray-600">See what our customers are saying</p>
@@ -275,7 +276,7 @@ export default function Home() {
 
           <div className="grid md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
-              <motion.div
+              <motion.article
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -283,24 +284,24 @@ export default function Home() {
                 transition={{ delay: index * 0.1 }}
                 className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300"
               >
-                <div className="flex gap-1 mb-4">
+                <div className="flex gap-1 mb-4" role="img" aria-label={`${testimonial.rating} out of 5 stars`}>
                   {[...Array(testimonial.rating)].map((_, i) => (
-                    <StarIcon key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                    <StarIcon key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" aria-hidden="true" />
                   ))}
                 </div>
-                <p className="text-gray-700 mb-6 italic">&ldquo;{testimonial.content}&rdquo;</p>
-                <div>
+                <blockquote className="text-gray-700 mb-6 italic">&ldquo;{testimonial.content}&rdquo;</blockquote>
+                <footer>
                   <p className="font-semibold">{testimonial.name}</p>
                   <p className="text-sm text-gray-500">{testimonial.role}</p>
-                </div>
-              </motion.div>
+                </footer>
+              </motion.article>
             ))}
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4">
+      <section className="py-20 px-4" aria-labelledby="cta-heading">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           whileInView={{ opacity: 1, scale: 1 }}
@@ -308,7 +309,7 @@ export default function Home() {
           className="container mx-auto max-w-4xl"
         >
           <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-3xl p-12 text-center text-white shadow-2xl">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">
+            <h2 id="cta-heading" className="text-4xl md:text-5xl font-bold mb-6">
               Ready to Clear Your Space?
             </h2>
             <p className="text-xl mb-8 opacity-90">
@@ -322,6 +323,7 @@ export default function Home() {
               <button
                 onClick={() => setShowForm(true)}
                 className="bg-white text-green-600 text-lg px-10 py-5 rounded-2xl font-semibold shadow-xl hover:shadow-2xl transition-all duration-300"
+                aria-label="Start your free junk removal quote"
               >
                 Start Your Free Quote →
               </button>
@@ -331,16 +333,16 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12 px-4">
+      <footer className="bg-gray-900 text-white py-12 px-4" role="contentinfo">
         <div className="container mx-auto text-center">
           <p className="mb-4">© 2025 Junk Removal AI. All rights reserved.</p>
-          <div className="flex justify-center gap-6 text-sm">
+          <nav aria-label="Footer navigation" className="flex justify-center gap-6 text-sm flex-wrap">
             <a href="#" className="hover:text-green-400 transition-colors">Privacy Policy</a>
             <a href="#" className="hover:text-green-400 transition-colors">Terms of Service</a>
             <a href="#" className="hover:text-green-400 transition-colors">Contact</a>
+            <a href="/provider/register" className="hover:text-green-400 transition-colors">Become a Provider</a>
             <a href="/provider" className="hover:text-green-400 transition-colors">Provider Portal</a>
-            <a href="/admin" className="hover:text-green-400 transition-colors">Admin</a>
-          </div>
+          </nav>
         </div>
       </footer>
     </main>

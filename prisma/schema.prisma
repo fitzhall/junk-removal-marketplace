@@ -69,6 +69,50 @@ enum ProviderStatus {
   SUSPENDED
 }
 
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  TRIALING
+}
+
+model Company {
+  id                 String             @id @default(uuid())
+  slug               String             @unique // e.g., "acme-junk" for URL
+  businessName       String
+  contactEmail       String
+  contactPhone       String?
+  logoUrl            String?
+  primaryColor       String             @default("#3B82F6")
+  secondaryColor     String             @default("#1E40AF")
+
+  // Subscription
+  subscriptionStatus SubscriptionStatus @default(TRIALING)
+  subscriptionId     String?            // Stripe subscription ID
+  activationFee      Float              @default(500)
+  monthlyFee         Float              @default(297)
+  activationPaidAt   DateTime?
+  trialEndsAt        DateTime?
+
+  // Features
+  hasBookingFeature  Boolean            @default(false)
+  hasAnalytics       Boolean            @default(false)
+  maxQuotesPerMonth  Int                @default(1000)
+
+  // Settings
+  notificationEmail  String?            // Where to send lead notifications
+  webhookUrl         String?            // For CRM integration
+  embedCode          String?            // Generated embed code
+
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  quotes             Quote[]
+
+  @@index([slug])
+  @@index([subscriptionStatus])
+}
+
 model User {
   id             String    @id @default(uuid())
   email          String    @unique
@@ -149,6 +193,8 @@ model Quote {
   id                 String      @id @default(uuid())
   userId             String?
   user               User?       @relation(fields: [userId], references: [id])
+  companyId          String?     // NEW: Which company owns this lead
+  company            Company?    @relation(fields: [companyId], references: [id])
   status             QuoteStatus @default(DRAFT)
   customerName       String?
   customerEmail      String?
@@ -184,6 +230,7 @@ model Quote {
 
   @@index([status])
   @@index([userId])
+  @@index([companyId])
   @@index([pickupZip])
   @@index([createdAt])
 }

@@ -32,6 +32,7 @@ const MobileProviderDashboard = dynamic(
 
 interface Lead {
   id: string
+  distributionId: string
   customerName: string
   customerEmail: string
   customerPhone: string
@@ -42,8 +43,9 @@ interface Lead {
   photos: string[]
   items: any[]
   estimatedValue: number
-  status: 'new' | 'viewed' | 'accepted' | 'declined'
+  status: 'new' | 'contacted' | 'won' | 'lost'
   createdAt: string
+  deliveredAt: string
   urgency: 'low' | 'medium' | 'high'
   propertyType: string
 }
@@ -51,7 +53,7 @@ interface Lead {
 export default function ModernProviderDashboard() {
   const [leads, setLeads] = useState<Lead[]>([])
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
-  const [filter, setFilter] = useState<'all' | 'new' | 'accepted' | 'declined'>('all')
+  const [filter, setFilter] = useState<'all' | 'new' | 'contacted' | 'won' | 'lost'>('all')
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
     totalLeads: 0,
@@ -106,42 +108,21 @@ export default function ModernProviderDashboard() {
     }
   }
 
-  const handleAcceptLead = async (leadId: string) => {
+  const handleUpdateStatus = async (leadId: string, distributionId: string, newStatus: 'contacted' | 'won' | 'lost') => {
     try {
-      const response = await fetch(`/api/provider/leads/${leadId}/accept`, {
+      const response = await fetch(`/api/provider/leads/${leadId}/status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bidAmount: selectedLead?.estimatedValue })
+        body: JSON.stringify({ status: newStatus, distributionId })
       })
 
       if (response.ok) {
-        setLeads(leads.map(lead =>
-          lead.id === leadId ? { ...lead, status: 'accepted' } : lead
-        ))
-        setSelectedLead(null)
+        // Refresh the lead list to get updated data
+        await fetchLeads()
         fetchStats()
       }
     } catch (error) {
-      console.error('Error accepting lead:', error)
-    }
-  }
-
-  const handleDeclineLead = async (leadId: string) => {
-    try {
-      const response = await fetch(`/api/provider/leads/${leadId}/decline`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: 'Not in service area' })
-      })
-
-      if (response.ok) {
-        setLeads(leads.map(lead =>
-          lead.id === leadId ? { ...lead, status: 'declined' } : lead
-        ))
-        setSelectedLead(null)
-      }
-    } catch (error) {
-      console.error('Error declining lead:', error)
+      console.error('Error updating lead status:', error)
     }
   }
 
@@ -152,8 +133,9 @@ export default function ModernProviderDashboard() {
   const filterTabs = [
     { id: 'all', label: 'All', count: leads.length },
     { id: 'new', label: 'New', count: leads.filter(l => l.status === 'new').length },
-    { id: 'accepted', label: 'Accepted', count: leads.filter(l => l.status === 'accepted').length },
-    { id: 'declined', label: 'Declined', count: leads.filter(l => l.status === 'declined').length },
+    { id: 'contacted', label: 'Contacted', count: leads.filter(l => l.status === 'contacted').length },
+    { id: 'won', label: 'Won', count: leads.filter(l => l.status === 'won').length },
+    { id: 'lost', label: 'Lost', count: leads.filter(l => l.status === 'lost').length },
   ]
 
   // Use mobile component on small screens
@@ -162,8 +144,7 @@ export default function ModernProviderDashboard() {
       <MobileProviderDashboard
         leads={leads}
         stats={stats}
-        onAcceptLead={handleAcceptLead}
-        onDeclineLead={handleDeclineLead}
+        onUpdateStatus={handleUpdateStatus}
         onRefresh={handleRefresh}
       />
     )
@@ -322,8 +303,6 @@ export default function ModernProviderDashboard() {
                       email: lead.customerEmail,
                       preferredTime: `${new Date(lead.preferredDate).toLocaleDateString()} at ${lead.preferredTime}`,
                     }}
-                    onAccept={() => handleAcceptLead(lead.id)}
-                    onDecline={() => handleDeclineLead(lead.id)}
                     onViewDetails={() => setSelectedLead(lead)}
                   />
                 </motion.div>
@@ -480,47 +459,59 @@ export default function ModernProviderDashboard() {
               </div>
 
               {/* Modal Footer with Actions */}
-              <div className="border-t border-gray-100 p-6 bg-gradient-to-br from-green-50 to-emerald-50">
-                <div className="flex items-center justify-between mb-4">
+              <div className="border-t border-gray-100 p-6 bg-gradient-to-br from-blue-50 to-indigo-50">
+                <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">Estimated Value</p>
                     <p className="text-3xl font-bold text-gradient-success">${selectedLead.estimatedValue}</p>
                   </div>
 
-                  {selectedLead.status === 'new' && (
-                    <div className="flex gap-3">
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleDeclineLead(selectedLead.id)}
-                        className="px-6 py-3 rounded-lg border border-gray-300 bg-white text-gray-700 font-medium hover:bg-gray-50 transition-colors"
-                      >
-                        Pass on Lead
-                      </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleAcceptLead(selectedLead.id)}
-                        className="btn-secondary px-8 py-3"
-                      >
-                        Accept Lead
-                      </motion.button>
-                    </div>
-                  )}
+                  <div className="flex gap-3">
+                    {(selectedLead.status === 'new' || selectedLead.status === 'contacted') && (
+                      <>
+                        {selectedLead.status === 'new' && (
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => handleUpdateStatus(selectedLead.id, selectedLead.distributionId, 'contacted')}
+                            className="px-6 py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
+                          >
+                            Mark Contacted
+                          </motion.button>
+                        )}
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handleUpdateStatus(selectedLead.id, selectedLead.distributionId, 'won')}
+                          className="px-6 py-3 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors"
+                        >
+                          Won Job
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handleUpdateStatus(selectedLead.id, selectedLead.distributionId, 'lost')}
+                          className="px-6 py-3 rounded-lg bg-gray-600 text-white font-medium hover:bg-gray-700 transition-colors"
+                        >
+                          Lost Job
+                        </motion.button>
+                      </>
+                    )}
 
-                  {selectedLead.status === 'accepted' && (
-                    <div className="px-6 py-3 bg-green-100 text-green-800 rounded-lg font-medium flex items-center gap-2">
-                      <CheckCircle className="h-5 w-5" />
-                      You accepted this lead
-                    </div>
-                  )}
+                    {selectedLead.status === 'won' && (
+                      <div className="px-6 py-3 bg-green-100 text-green-800 rounded-lg font-medium flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5" />
+                        You won this job!
+                      </div>
+                    )}
 
-                  {selectedLead.status === 'declined' && (
-                    <div className="px-6 py-3 bg-red-100 text-red-800 rounded-lg font-medium flex items-center gap-2">
-                      <XCircle className="h-5 w-5" />
-                      You declined this lead
-                    </div>
-                  )}
+                    {selectedLead.status === 'lost' && (
+                      <div className="px-6 py-3 bg-gray-100 text-gray-800 rounded-lg font-medium flex items-center gap-2">
+                        <XCircle className="h-5 w-5" />
+                        Job lost
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </motion.div>

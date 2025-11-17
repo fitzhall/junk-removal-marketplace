@@ -13,14 +13,12 @@ interface LeadCardProps {
     estimatedValue: number
     createdAt: string | Date
     priority: 'low' | 'medium' | 'high' | 'urgent'
-    status: 'new' | 'contacted' | 'accepted' | 'declined'
+    status: 'new' | 'contacted' | 'won' | 'lost'
     distance?: string
     phone?: string
     email?: string
     preferredTime?: string
   }
-  onAccept?: () => void
-  onDecline?: () => void
   onViewDetails?: () => void
   className?: string
 }
@@ -35,8 +33,8 @@ const priorityStyles = {
 const statusStyles = {
   new: 'bg-blue-100 text-blue-700',
   contacted: 'bg-yellow-100 text-yellow-700',
-  accepted: 'bg-green-100 text-green-700',
-  declined: 'bg-gray-100 text-gray-700',
+  won: 'bg-green-100 text-green-700',
+  lost: 'bg-gray-100 text-gray-700',
 }
 
 const priorityBadgeStyles = {
@@ -48,8 +46,6 @@ const priorityBadgeStyles = {
 
 export function LeadCard({
   lead,
-  onAccept,
-  onDecline,
   onViewDetails,
   className,
 }: LeadCardProps) {
@@ -120,28 +116,13 @@ export function LeadCard({
       </div>
 
       {/* Footer Actions */}
-      <div className="mt-4 flex items-center gap-2">
-        {onAccept && (
-          <button
-            onClick={onAccept}
-            className="flex-1 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:shadow-md hover:scale-[1.02]"
-          >
-            Accept Lead
-          </button>
-        )}
-        {onDecline && (
-          <button
-            onClick={onDecline}
-            className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-all hover:bg-gray-50"
-          >
-            Pass
-          </button>
-        )}
+      <div className="mt-4">
         {onViewDetails && (
           <button
             onClick={onViewDetails}
-            className="rounded-lg border border-gray-300 bg-white p-2 text-gray-700 transition-all hover:bg-gray-50"
+            className="w-full rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:shadow-md hover:scale-[1.02] flex items-center justify-center gap-2"
           >
+            View Lead Details
             <ChevronRight className="h-4 w-4" />
           </button>
         )}

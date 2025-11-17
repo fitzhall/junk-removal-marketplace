@@ -1,18 +1,15 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    // TODO: Get providerId from authenticated session
-    // For now, use first provider as demo
-    const providers = await prisma.provider.findMany({ orderBy: { createdAt: 'asc' }, take: 1 })
+    const providers = await prisma.provider.findMany({ take: 1 })
     const providerId = providers[0]?.id
 
     if (!providerId) {
-      return NextResponse.json({ leads: [] })
+      return NextResponse.json({ error: 'No provider found' })
     }
 
-    // Get leads that were distributed to this provider
     const leadDistributions = await prisma.leadDistribution.findMany({
       where: {
         providerId: providerId
@@ -30,7 +27,7 @@ export async function GET(request: Request) {
       take: 50
     })
 
-    // Transform into lead format
+    // Transform into lead format (same as main API)
     const leads = leadDistributions.map(dist => {
       const quote = dist.quote
       return {
@@ -46,7 +43,6 @@ export async function GET(request: Request) {
         photos: Array.isArray(quote.photoUrls) ? quote.photoUrls : [],
         items: (quote.aiAnalysis as any)?.items || [],
         estimatedValue: quote.totalPrice || quote.priceRangeMax || 0,
-        // Map statuses: SENT=new, VIEWED=contacted, ACCEPTED=won, DECLINED=lost
         status: dist.status === 'SENT' ? 'new' :
                 dist.status === 'VIEWED' ? 'contacted' :
                 dist.status === 'ACCEPTED' ? 'won' :
@@ -58,12 +54,13 @@ export async function GET(request: Request) {
       }
     })
 
-    return NextResponse.json({ leads })
-  } catch (error) {
-    console.error('Error fetching leads:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch leads' },
-      { status: 500 }
-    )
+    return NextResponse.json({
+      providerId,
+      providerName: providers[0]?.businessName,
+      distributionsFound: leadDistributions.length,
+      leads
+    })
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message, stack: error.stack }, { status: 500 })
   }
 }
