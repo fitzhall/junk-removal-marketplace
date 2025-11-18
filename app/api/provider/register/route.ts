@@ -20,8 +20,13 @@ export async function POST(request: Request) {
       businessAddress,
       firstName,
       lastName,
-      serviceAreas // Array of ZIP codes
+      serviceAreas, // Array of ZIP codes
+      companyId // Optional: can be passed from client or detected from headers
     } = body
+
+    // Get company context from headers (set by middleware)
+    const companyIdFromHeaders = request.headers.get('x-company-id')
+    const finalCompanyId = companyId || companyIdFromHeaders || null
 
     // Validation
     if (!businessName || !email || !phone || !serviceAreas || serviceAreas.length === 0) {
@@ -29,6 +34,21 @@ export async function POST(request: Request) {
         { error: 'Missing required fields' },
         { status: 400 }
       )
+    }
+
+    // If registering on a company-specific domain, verify company exists and is active
+    if (finalCompanyId) {
+      const company = await prisma.company.findUnique({
+        where: { id: finalCompanyId },
+        select: { isActive: true, subscriptionStatus: true }
+      })
+
+      if (!company || !company.isActive) {
+        return NextResponse.json(
+          { error: 'Company not found or inactive' },
+          { status: 400 }
+        )
+      }
     }
 
     // Check if user already exists
@@ -64,6 +84,7 @@ export async function POST(request: Request) {
       const provider = await tx.provider.create({
         data: {
           userId: user.id,
+          companyId: finalCompanyId, // Associate with company if on company domain
           businessName,
           businessPhone: phone,
           businessAddress: businessAddress || null,

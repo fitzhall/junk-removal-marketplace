@@ -10,6 +10,13 @@ async function createTestCompany() {
       logoUrl: null,
       primaryColor: '#2563EB', // Blue
       secondaryColor: '#1E40AF', // Darker blue
+
+      // Multi-tenant fields
+      subdomain: 'demo', // Access at demo.localhost:3002
+      customDomain: null, // Can add custom domain later
+      domainVerified: true, // Auto-verify for test
+      isActive: true,
+
       subscriptionStatus: 'ACTIVE',
       notificationEmail: 'leads@demo-junk.com',
       activationPaidAt: new Date(),
@@ -17,7 +24,8 @@ async function createTestCompany() {
   })
 
   console.log('✅ Test company created!')
-  console.log('🔗 Widget URL: http://localhost:3000/quote/demo-junk')
+  console.log('🔗 Widget URL: http://localhost:3002/quote/demo-junk')
+  console.log('🌐 Subdomain URL: http://demo.localhost:3002')
   console.log('📧 Notification email:', company.notificationEmail)
   console.log('🆔 Company ID:', company.id)
 }

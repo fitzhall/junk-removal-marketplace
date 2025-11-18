@@ -86,6 +86,12 @@ model Company {
   primaryColor       String             @default("#3B82F6")
   secondaryColor     String             @default("#1E40AF")
 
+  // Multi-tenant domain settings
+  subdomain          String?            @unique // e.g., "acme" for acme.platform.com
+  customDomain       String?            @unique // e.g., "acmejunk.com"
+  domainVerified     Boolean            @default(false)
+  isActive           Boolean            @default(true)
+
   // Subscription
   subscriptionStatus SubscriptionStatus @default(TRIALING)
   subscriptionId     String?            // Stripe subscription ID
@@ -108,9 +114,13 @@ model Company {
   updatedAt          DateTime           @updatedAt
 
   quotes             Quote[]
+  providers          Provider[]
 
   @@index([slug])
+  @@index([subdomain])
+  @@index([customDomain])
   @@index([subscriptionStatus])
+  @@index([isActive])
 }
 
 model User {
@@ -138,6 +148,8 @@ model Provider {
   id               String         @id @default(uuid())
   userId           String         @unique
   user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId        String?        // Multi-tenant: which company this provider belongs to
+  company          Company?       @relation(fields: [companyId], references: [id])
   businessName     String
   businessAddress  String?
   businessPhone    String?
@@ -171,6 +183,7 @@ model Provider {
   @@index([status])
   @@index([rating])
   @@index([autoBidEnabled])
+  @@index([companyId])
 }
 
 model ServiceArea {
