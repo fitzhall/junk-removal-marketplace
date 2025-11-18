@@ -1,13 +1,19 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireProviderAuth } from '@/lib/auth-middleware'
+// Removed NextAuth dependency - using Supabase auth directly in dashboard
 
 export async function GET(request: Request) {
+  // This API route is deprecated - provider dashboard now uses Supabase directly
+  return NextResponse.json(
+    { message: 'This API is deprecated. Use Supabase client directly.' },
+    { status: 410 }
+  )
+}
+
+export async function GET_DEPRECATED(request: Request) {
   try {
-    // Get provider ID from authenticated session
-    const authResult = await requireProviderAuth()
-    if ('error' in authResult) {
-      return authResult
+    // Old implementation kept for reference
+    return NextResponse.json({ error: 'Deprecated' }, { status: 410 })
     }
     const { providerId } = authResult
 
