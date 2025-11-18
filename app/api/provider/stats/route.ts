@@ -1,22 +1,35 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireProviderAuth } from '@/lib/auth-middleware'
 
 export async function GET() {
   try {
-    // TODO: Get the actual provider ID from session/auth
-    // For now, we'll return aggregate stats for all providers
+    // Get provider ID from authenticated session
+    const authResult = await requireProviderAuth()
+    if ('error' in authResult) {
+      return authResult
+    }
+    const { providerId } = authResult
 
-    // Get total leads distributed to providers
-    const totalLeads = await prisma.leadDistribution.count()
-
-    // Get accepted leads
-    const acceptedLeads = await prisma.leadDistribution.count({
-      where: { status: 'ACCEPTED' }
+    // Get total leads distributed to this specific provider
+    const totalLeads = await prisma.leadDistribution.count({
+      where: { providerId }
     })
 
-    // Get completed jobs and calculate revenue
+    // Get accepted leads for this provider
+    const acceptedLeads = await prisma.leadDistribution.count({
+      where: {
+        providerId,
+        status: 'ACCEPTED'
+      }
+    })
+
+    // Get completed jobs and calculate revenue for this provider
     const completedJobs = await prisma.job.findMany({
-      where: { status: 'COMPLETED' },
+      where: {
+        providerId,
+        status: 'COMPLETED'
+      },
       select: { finalPrice: true }
     })
 

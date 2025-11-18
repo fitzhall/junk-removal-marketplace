@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+// Disabled NextAuth for Supabase migration
+// import { getToken } from 'next-auth/jwt'
 
 // Platform domain (you'll set this in env)
 const PLATFORM_DOMAIN = process.env.NEXT_PUBLIC_PLATFORM_DOMAIN || 'localhost:3002'
@@ -8,6 +10,35 @@ export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || ''
   const url = request.nextUrl
   const path = url.pathname
+
+  // TEMPORARILY DISABLED - Using Supabase Auth instead
+  // Check for provider authentication
+  // if (path.startsWith('/provider') && !path.includes('/login') && !path.includes('/register')) {
+  //   const token = await getToken({ req: request })
+
+  //   if (!token) {
+  //     const loginUrl = new URL('/provider/login', request.url)
+  //     loginUrl.searchParams.set('callbackUrl', path)
+  //     return NextResponse.redirect(loginUrl)
+  //   }
+
+  //   // Check if user has PROVIDER role
+  //   if (token.role !== 'PROVIDER') {
+  //     return NextResponse.redirect(new URL('/unauthorized', request.url))
+  //   }
+  // }
+
+  // // Check for provider API authentication
+  // if (path.startsWith('/api/provider') && !path.includes('/auth')) {
+  //   const token = await getToken({ req: request })
+
+  //   if (!token || token.role !== 'PROVIDER') {
+  //     return NextResponse.json(
+  //       { error: 'Unauthorized. Provider authentication required.' },
+  //       { status: 401 }
+  //     )
+  //   }
+  // }
 
   // Remove port for comparison
   const domain = hostname.replace(/:\d+$/, '')
@@ -94,5 +125,7 @@ export const config = {
      * - public files (public folder)
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/provider/:path*',
+    '/api/provider/:path*',
   ],
 }

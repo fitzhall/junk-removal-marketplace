@@ -23,6 +23,7 @@ import {
 import { StatCard } from '@/components/ui/stat-card'
 import { LeadCard } from '@/components/ui/lead-card'
 import { cn } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
 
 // Dynamically import mobile dashboard to reduce initial bundle
 const MobileProviderDashboard = dynamic(
@@ -78,11 +79,72 @@ export default function ModernProviderDashboard() {
 
   const fetchLeads = async () => {
     try {
-      const response = await fetch('/api/provider/leads')
-      if (response.ok) {
-        const data = await response.json()
-        setLeads(data.leads || [])
+      const supabase = createClient()
+
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        console.error('No user logged in')
+        setLoading(false)
+        return
       }
+
+      // Get provider record
+      const { data: provider } = await supabase
+        .from('providers')
+        .select('*')
+        .eq('auth_user_id', user.id)
+        .single()
+
+      if (!provider) {
+        console.error('No provider found')
+        setLoading(false)
+        return
+      }
+
+      // Get leads with quotes
+      const { data: leadDistributions, error } = await supabase
+        .from('lead_distributions')
+        .select(`
+          *,
+          quotes (*)
+        `)
+        .eq('provider_id', provider.id)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error fetching leads:', error)
+        setLoading(false)
+        return
+      }
+
+      // Transform to match expected format
+      const transformedLeads = (leadDistributions || []).map(dist => {
+        const quote = dist.quotes
+        return {
+          id: quote.id,
+          distributionId: dist.id,
+          customerName: quote.customer_name || 'Customer',
+          customerEmail: quote.customer_email || 'not provided',
+          customerPhone: quote.customer_phone || 'not provided',
+          address: `${quote.pickup_address || ''}, ${quote.pickup_city || ''}, ${quote.pickup_state || ''} ${quote.pickup_zip || ''}`,
+          description: 'Junk removal needed',
+          preferredDate: quote.preferred_date,
+          preferredTime: quote.preferred_time || 'Flexible',
+          photos: Array.isArray(quote.photos) ? quote.photos : [],
+          items: quote.items || [],
+          estimatedValue: quote.estimated_price || 0,
+          status: dist.status === 'sent' ? 'new' :
+                  dist.status === 'accepted' ? 'won' :
+                  dist.status === 'declined' ? 'lost' : 'contacted',
+          createdAt: quote.created_at,
+          deliveredAt: dist.sent_at,
+          urgency: quote.is_urgent ? 'high' : 'medium',
+          propertyType: 'Residential'
+        }
+      })
+
+      setLeads(transformedLeads)
     } catch (error) {
       console.error('Error fetching leads:', error)
     } finally {
@@ -98,11 +160,51 @@ export default function ModernProviderDashboard() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/provider/stats')
-      if (response.ok) {
-        const data = await response.json()
-        setStats(data)
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user) return
+
+      const { data: provider } = await supabase
+        .from('providers')
+        .select('id, total_jobs, rating')
+        .eq('auth_user_id', user.id)
+        .single()
+
+      if (!provider) return
+
+      // Get lead stats
+      const { data: leadDistributions } = await supabase
+        .from('lead_distributions')
+        .select('status')
+        .eq('provider_id', provider.id)
+
+      const stats = {
+        totalLeads: leadDistributions?.length || 0,
+        activeLeads: leadDistributions?.filter(l => l.status === 'sent' || l.status === 'viewed').length || 0,
+        wonLeads: leadDistributions?.filter(l => l.status === 'accepted').length || 0,
+        revenue: 0,
+        conversionRate: 0,
+        rating: provider.rating || 0,
+        completedJobs: provider.total_jobs || 0
       }
+
+      if (stats.totalLeads > 0) {
+        stats.conversionRate = Math.round((stats.wonLeads / stats.totalLeads) * 100)
+      }
+
+      // Get revenue from completed jobs
+      const { data: jobs } = await supabase
+        .from('jobs')
+        .select('final_price')
+        .eq('provider_id', provider.id)
+        .eq('status', 'completed')
+
+      if (jobs) {
+        stats.revenue = jobs.reduce((sum, job) => sum + (job.final_price || 0), 0)
+      }
+
+      setStats(stats)
     } catch (error) {
       console.error('Error fetching stats:', error)
     }
@@ -110,19 +212,46 @@ export default function ModernProviderDashboard() {
 
   const handleUpdateStatus = async (leadId: string, distributionId: string, newStatus: 'contacted' | 'won' | 'lost') => {
     try {
-      const response = await fetch(`/api/provider/leads/${leadId}/status`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus, distributionId })
-      })
+      const supabase = createClient()
 
-      if (response.ok) {
+      const statusMap = {
+        'contacted': 'viewed',
+        'won': 'accepted',
+        'lost': 'declined'
+      }
+
+      const { error } = await supabase
+        .from('lead_distributions')
+        .update({
+          status: statusMap[newStatus],
+          responded_at: new Date().toISOString(),
+          response_message: `Status updated to ${newStatus}`
+        })
+        .eq('id', distributionId)
+
+      if (!error) {
         // Refresh the lead list to get updated data
         await fetchLeads()
         fetchStats()
+      } else {
+        console.error('Error updating lead status:', error)
       }
     } catch (error) {
       console.error('Error updating lead status:', error)
+    }
+  }
+
+  const handleAcceptLead = async (leadId: string) => {
+    const lead = leads.find(l => l.id === leadId)
+    if (lead) {
+      await handleUpdateStatus(leadId, lead.distributionId, 'won')
+    }
+  }
+
+  const handleDeclineLead = async (leadId: string) => {
+    const lead = leads.find(l => l.id === leadId)
+    if (lead) {
+      await handleUpdateStatus(leadId, lead.distributionId, 'lost')
     }
   }
 
@@ -144,7 +273,8 @@ export default function ModernProviderDashboard() {
       <MobileProviderDashboard
         leads={leads}
         stats={stats}
-        onUpdateStatus={handleUpdateStatus}
+        onAcceptLead={handleAcceptLead}
+        onDeclineLead={handleDeclineLead}
         onRefresh={handleRefresh}
       />
     )

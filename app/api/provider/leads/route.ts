@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireProviderAuth } from '@/lib/auth-middleware'
 
 export async function GET(request: Request) {
   try {
-    // TODO: Get providerId from authenticated session
-    // For now, use first provider as demo
-    const providers = await prisma.provider.findMany({ orderBy: { createdAt: 'asc' }, take: 1 })
-    const providerId = providers[0]?.id
+    // Get provider ID from authenticated session
+    const authResult = await requireProviderAuth()
+    if ('error' in authResult) {
+      return authResult
+    }
+    const { providerId } = authResult
 
     if (!providerId) {
       return NextResponse.json({ leads: [] })

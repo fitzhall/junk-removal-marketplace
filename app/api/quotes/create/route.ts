@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { VisionAIService } from '@/lib/google-vision'
+import { VisionAIService } from '@/lib/google-vision-wrapper' // Using wrapper for safe v1/v2 toggle
 import { prisma } from '@/lib/prisma'
 import { VolumeSize } from '@prisma/client'
 import { cloudinaryService } from '@/lib/cloudinary'
