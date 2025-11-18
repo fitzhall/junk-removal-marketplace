@@ -91,3 +91,16 @@ temp/
 service-account-key.json
 *-service-account*.json
 credentials.json
+
+# SECURITY: Never commit these files with credentials!
+.env.supabase
+test-db-connection.js
+test-db.js
+*.sql
+create-test-leads-now.sql
+fix-client-rls-access.sql
+aggressive-rls-fix.sql
+supabase-*.sql
+add-*.sql
+fix-*.sql
+create-*.sql
