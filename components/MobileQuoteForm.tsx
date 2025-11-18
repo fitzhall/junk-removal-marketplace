@@ -136,7 +136,7 @@ export default function MobileQuoteForm({ onComplete, companyId, companySlug, pr
         formData.append('companySlug', companySlug)
       }
 
-      const response = await fetch('/api/quotes/create', {
+      const response = await fetch('/api/quotes/create-supabase', {
         method: 'POST',
         body: formData
       })

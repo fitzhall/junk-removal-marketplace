@@ -4,6 +4,7 @@ import './globals.css'
 import { Providers } from '@/components/Providers'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
 import { StructuredData } from '@/components/StructuredData'
+import { ProviderPixelWrapper } from '@/components/ProviderPixelWrapper'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -93,6 +94,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <GoogleAnalytics />
+        <ProviderPixelWrapper />
         <StructuredData />
         <Providers>{children}</Providers>
       </body>

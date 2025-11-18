@@ -43,7 +43,7 @@ export default function ProviderRegister() {
         return
       }
 
-      const response = await fetch('/api/provider/register', {
+      const response = await fetch('/api/provider/register-supabase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

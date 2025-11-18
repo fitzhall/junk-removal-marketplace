@@ -13,6 +13,7 @@ import LoadingSkeleton from './LoadingSkeleton'
 import ItemEditor from './ItemEditor'
 import PricingBreakdown from './PricingBreakdown'
 import BookingScheduler from './BookingScheduler'
+import JobDetailsForm, { type JobDetails } from './JobDetailsForm'
 import {
   MapPinIcon,
   UserIcon,
@@ -20,13 +21,22 @@ import {
   SparklesIcon,
   CheckIcon,
   ArrowRightIcon,
-  PencilSquareIcon
+  PencilSquareIcon,
+  ClipboardDocumentListIcon
 } from '@heroicons/react/24/outline'
 import { Loader2 } from 'lucide-react'
 
 export default function QuoteForm() {
   const [step, setStep] = useState(1)
   const [photos, setPhotos] = useState<File[]>([])
+  const [jobDetails, setJobDetails] = useState<JobDetails>({
+    jobSize: '',
+    itemTypes: [],
+    accessDifficulty: '',
+    urgency: '',
+    specialHandling: [],
+    additionalNotes: ''
+  })
   const [location, setLocation] = useState({
     address: '',
     city: '',
@@ -47,9 +57,10 @@ export default function QuoteForm() {
 
   const steps = [
     { number: 1, title: 'Photos', icon: CameraIcon },
-    { number: 2, title: 'Location', icon: MapPinIcon },
-    { number: 3, title: 'Contact', icon: UserIcon },
-    { number: 4, title: 'Quote', icon: SparklesIcon }
+    { number: 2, title: 'Job Details', icon: ClipboardDocumentListIcon },
+    { number: 3, title: 'Location', icon: MapPinIcon },
+    { number: 4, title: 'Contact', icon: UserIcon },
+    { number: 5, title: 'Quote', icon: SparklesIcon }
   ]
 
   const handlePhotoUpload = (files: File[]) => {
@@ -58,6 +69,11 @@ export default function QuoteForm() {
 
   const handleLocationSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    setStep(4)
+  }
+
+  const handleJobDetailsSubmit = (details: JobDetails) => {
+    setJobDetails(details)
     setStep(3)
   }
 
@@ -116,6 +132,7 @@ export default function QuoteForm() {
       })
       formData.append('location', JSON.stringify(location))
       formData.append('customerInfo', JSON.stringify(customerInfo))
+      formData.append('jobDetails', JSON.stringify(jobDetails))
 
       console.log('Submitting quote request...')
 
@@ -125,7 +142,7 @@ export default function QuoteForm() {
 
       let response
       try {
-        response = await fetch('/api/quotes/create', {
+        response = await fetch('/api/quotes/create-supabase', {
           method: 'POST',
           body: formData,
           signal: controller.signal
@@ -334,17 +351,50 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
                 onClick={() => setStep(2)}
                 className="mt-8 w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 px-6 rounded-xl font-semibold text-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2"
               >
-                Continue to Location
+                Continue to Job Details
                 <ArrowRightIcon className="w-5 h-5" />
               </motion.button>
             )}
           </motion.div>
         )}
 
-        {/* Step 2: Location */}
+        {/* Step 2: Job Details */}
         {step === 2 && (
-          <motion.form
+          <motion.div
             key="step2"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="bg-white rounded-3xl shadow-xl p-8"
+          >
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold mb-3">
+                📋 Tell Us About Your Job
+              </h2>
+              <p className="text-gray-600 text-lg">
+                Help us provide an accurate quote by answering a few questions.
+              </p>
+            </div>
+
+            <JobDetailsForm
+              onDetailsSubmit={handleJobDetailsSubmit}
+              initialDetails={jobDetails}
+            />
+
+            <button
+              type="button"
+              onClick={() => setStep(1)}
+              className="mt-4 w-full bg-gray-100 text-gray-700 py-4 px-6 rounded-xl font-semibold text-lg hover:bg-gray-200 transition-colors"
+            >
+              Back to Photos
+            </button>
+          </motion.div>
+        )}
+
+        {/* Step 3: Location */}
+        {step === 3 && (
+          <motion.form
+            key="step3"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
@@ -426,7 +476,7 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
             <div className="flex gap-4 mt-8">
               <button
                 type="button"
-                onClick={() => setStep(1)}
+                onClick={() => setStep(2)}
                 className="flex-1 bg-gray-100 text-gray-700 py-4 px-6 rounded-xl font-semibold text-lg hover:bg-gray-200 transition-colors"
               >
                 Back
@@ -442,10 +492,10 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
           </motion.form>
         )}
 
-        {/* Step 3: Customer Info */}
-        {step === 3 && !loading && (
+        {/* Step 4: Customer Info */}
+        {step === 4 && !loading && (
           <motion.form
-            key="step3"
+            key="step4"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
@@ -508,7 +558,7 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
             <div className="flex gap-4 mt-8">
               <button
                 type="button"
-                onClick={() => setStep(2)}
+                onClick={() => setStep(3)}
                 className="flex-1 bg-gray-100 text-gray-700 py-4 px-6 rounded-xl font-semibold text-lg hover:bg-gray-200 transition-colors"
                 disabled={loading}
               >
@@ -562,16 +612,16 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
               }}
               onConfirm={() => {
                 setShowItemEditor(false)
-                setStep(4)
+                setStep(5)
               }}
             />
           </motion.div>
         )}
 
-        {/* Step 4: Quote Display */}
-        {step === 4 && quote && !showItemEditor && (
+        {/* Step 5: Quote Display */}
+        {step === 5 && quote && !showItemEditor && (
           <motion.div
-            key="step4"
+            key="step5"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             className="bg-white rounded-3xl shadow-xl p-8"

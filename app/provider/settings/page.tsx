@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   CreditCardIcon,
   MapPinIcon,
@@ -105,6 +105,22 @@ export default function ProviderSettings() {
     )
   }
 
+  // Get provider info (mock for now - should come from Supabase)
+  const [providerId] = useState('provider-123')
+  const [customDomain, setCustomDomain] = useState('')
+  const [subdomain] = useState('acmejunk') // Would come from provider record
+  const [platformDomain, setPlatformDomain] = useState('yoursite.com')
+
+  // Use effect to get the hostname only on client side
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setPlatformDomain(window.location.hostname)
+    }
+  }, [])
+
+  const campaignUrl = `https://${subdomain}.${platformDomain}`
+  const directUrl = `https://${platformDomain}?ref=${providerId}`
+
   return (
     <div className="min-h-screen bg-white">
       <header className="border-b border-gray-200">
@@ -122,6 +138,168 @@ export default function ProviderSettings() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Subscription */}
           <div className="lg:col-span-2 space-y-8">
+            {/* Campaign URLs Section */}
+            <div className="border border-gray-200 rounded-lg p-6">
+              <h2 className="text-lg font-medium mb-6">Campaign URLs</h2>
+
+              {/* Subdomain URL */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Your White-Label URL
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={campaignUrl}
+                    readOnly
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm"
+                  />
+                  <button
+                    onClick={() => navigator.clipboard.writeText(campaignUrl)}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Use this URL for Facebook and Google ads. Leads will go directly to you.
+                </p>
+              </div>
+
+              {/* Direct Campaign URL */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Alternative Campaign URL
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={directUrl}
+                    readOnly
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm"
+                  />
+                  <button
+                    onClick={() => navigator.clipboard.writeText(directUrl)}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Backup URL if subdomain isn't working yet.
+                </p>
+              </div>
+
+              {/* Custom Domain */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Custom Domain (Optional)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={customDomain}
+                    onChange={(e) => setCustomDomain(e.target.value)}
+                    placeholder="www.yourbusiness.com"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                  <button className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                    Save
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Use your own domain. Point your DNS to our servers.
+                </p>
+              </div>
+
+              {/* Instructions */}
+              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                <h4 className="text-sm font-medium text-blue-900 mb-2">Setup Instructions:</h4>
+                <ol className="text-xs text-blue-700 space-y-1">
+                  <li>1. Copy your white-label URL above</li>
+                  <li>2. Use it as the landing page in your Facebook/Google campaigns</li>
+                  <li>3. All leads from your campaigns will appear in your dashboard</li>
+                  <li>4. For custom domains, add CNAME record pointing to {platformDomain}</li>
+                </ol>
+              </div>
+            </div>
+
+            {/* Tracking Pixels Section */}
+            <div className="border border-gray-200 rounded-lg p-6">
+              <h2 className="text-lg font-medium mb-6">Tracking Pixels</h2>
+
+              {/* Facebook Pixel */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Facebook Pixel ID
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="123456789012345"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                  <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                    Save
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Track conversions from Facebook ads
+                </p>
+              </div>
+
+              {/* Google Analytics */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Google Analytics ID
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="G-XXXXXXXXXX"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                  <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                    Save
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Track website analytics and conversions
+                </p>
+              </div>
+
+              {/* Google Ads */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Google Ads Conversion ID
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="AW-XXXXXXXXX/XXXXXXXX"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                  <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                    Save
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Track Google Ads conversions
+                </p>
+              </div>
+
+              {/* Info Box */}
+              <div className="p-4 bg-green-50 rounded-lg">
+                <h4 className="text-sm font-medium text-green-900 mb-2">How it works:</h4>
+                <ul className="text-xs text-green-700 space-y-1">
+                  <li>• Pixels fire automatically when customers visit your white-label domain</li>
+                  <li>• Lead submissions are tracked as conversions</li>
+                  <li>• Data flows directly to your ad accounts for optimization</li>
+                  <li>• No technical setup required - just add your IDs</li>
+                </ul>
+              </div>
+            </div>
+
             {/* Current Plan */}
             <div className="border border-gray-200 rounded-lg p-6">
               <div className="flex items-center justify-between mb-6">
