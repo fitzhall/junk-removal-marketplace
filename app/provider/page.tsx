@@ -280,42 +280,29 @@ export default function ModernProviderDashboard() {
     )
   }
 
-  // Desktop view with modern design
+  // Minimalist Desktop view
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Modern Header with Glassmorphism */}
-      <header className="sticky top-0 z-40 glass-effect glass-border shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <div className="min-h-screen bg-white">
+      {/* Minimal Header */}
+      <header className="border-b border-black">
+        <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="h-10 w-10 bg-gradient-primary rounded-lg flex items-center justify-center">
-                <Briefcase className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gradient">Provider Dashboard</h1>
-                <p className="text-sm text-gray-600">Manage your leads and grow your business</p>
-              </div>
+            <div>
+              <h1 className="text-xl font-bold">PROVIDER DASHBOARD</h1>
+              <p className="text-sm text-gray-600 mt-1">Manage leads</p>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
               <button
                 onClick={handleRefresh}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                className="text-gray-600 hover:text-black transition-colors"
                 title="Refresh"
               >
-                <RefreshCw className={cn("h-5 w-5 text-gray-600", loading && "animate-spin")} />
+                <RefreshCw className={cn("h-5 w-5", loading && "animate-spin")} />
               </button>
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-medium text-gray-900">Professional Plan</p>
-                <div className="flex items-center gap-1 text-xs text-gray-500">
-                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                  <span>7 credits remaining</span>
-                </div>
-              </div>
               <a
                 href="/provider/settings"
-                className="btn-primary flex items-center gap-2"
+                className="text-sm font-medium hover:underline"
               >
-                <Settings className="h-4 w-4" />
                 Settings
               </a>
             </div>
@@ -324,245 +311,162 @@ export default function ModernProviderDashboard() {
       </header>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Modern Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <StatCard
-            title="Total Leads"
-            value={stats.totalLeads}
-            icon={Briefcase}
-            variant="primary"
-            change={{ value: 12, label: 'vs last week' }}
-          />
-          <StatCard
-            title="Accepted Leads"
-            value={stats.acceptedLeads}
-            icon={CheckCircle}
-            variant="success"
-            change={{ value: 8, label: 'vs last week' }}
-          />
-          <StatCard
-            title="Revenue"
-            value={`$${stats.revenue}`}
-            icon={DollarSign}
-            variant="success"
-            change={{ value: 23, label: 'vs last week' }}
-          />
-          <StatCard
-            title="Conversion Rate"
-            value={`${stats.conversionRate}%`}
-            icon={TrendingUp}
-            variant="warning"
-            change={{ value: -5, label: 'vs last week' }}
-          />
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Minimal Stats */}
+        <div className="grid grid-cols-4 gap-px bg-black mb-8">
+          <div className="bg-white p-6">
+            <div className="text-sm text-gray-600">Total Leads</div>
+            <div className="text-3xl font-bold mt-2">{stats.totalLeads}</div>
+          </div>
+          <div className="bg-white p-6">
+            <div className="text-sm text-gray-600">Won</div>
+            <div className="text-3xl font-bold mt-2">{stats.acceptedLeads}</div>
+          </div>
+          <div className="bg-white p-6">
+            <div className="text-sm text-gray-600">Revenue</div>
+            <div className="text-3xl font-bold mt-2">${stats.revenue}</div>
+          </div>
+          <div className="bg-white p-6">
+            <div className="text-sm text-gray-600">Conversion</div>
+            <div className="text-3xl font-bold mt-2">{stats.conversionRate}%</div>
+          </div>
         </div>
 
-        {/* Filter Tabs with Modern Styling */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex gap-2">
-            {filterTabs.map((tab) => (
-              <motion.button
-                key={tab.id}
-                onClick={() => setFilter(tab.id as any)}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className={cn(
-                  "px-4 py-2 rounded-lg font-medium transition-all",
-                  filter === tab.id
-                    ? "bg-gradient-primary text-white shadow-md"
-                    : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
-                )}
+        {/* Minimal Filter Tabs */}
+        <div className="flex items-center gap-6 mb-8 border-b border-gray-200 pb-4">
+          {filterTabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setFilter(tab.id as any)}
+              className={cn(
+                "text-sm font-medium transition-colors",
+                filter === tab.id
+                  ? "text-black"
+                  : "text-gray-400 hover:text-gray-600"
+              )}
+            >
+              {tab.label} ({tab.count})
+            </button>
+          ))}
+        </div>
+
+        {/* Minimal Leads List */}
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="text-gray-400">Loading...</div>
+          </div>
+        ) : filteredLeads.length === 0 ? (
+          <div className="text-center py-20">
+            <div className="text-gray-400">No leads found</div>
+          </div>
+        ) : (
+          <div className="space-y-px bg-black">
+            {filteredLeads.map((lead) => (
+              <div
+                key={lead.id}
+                className="bg-white p-6 hover:bg-gray-50 cursor-pointer transition-colors"
+                onClick={() => setSelectedLead(lead)}
               >
-                {tab.label}
-                <span className="ml-2 text-sm opacity-80">({tab.count})</span>
-              </motion.button>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-4 mb-2">
+                      <h3 className="font-bold">{lead.customerName}</h3>
+                      {lead.urgency === 'high' && (
+                        <span className="text-xs font-bold text-red-600">[URGENT]</span>
+                      )}
+                      {lead.status === 'new' && (
+                        <span className="text-xs font-bold">[NEW]</span>
+                      )}
+                    </div>
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <div>{lead.address}</div>
+                      <div>{new Date(lead.preferredDate).toLocaleDateString()} at {lead.preferredTime}</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold">${lead.estimatedValue}</div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {lead.status.toUpperCase()}
+                    </div>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
-          <button className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
-            <Filter className="h-4 w-4" />
-            <span className="text-sm font-medium">More filters</span>
-          </button>
-        </div>
-
-        {/* Modern Leads Grid */}
-        <AnimatePresence mode="wait">
-          {loading ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col items-center justify-center py-20"
-            >
-              <div className="h-12 w-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mb-4" />
-              <p className="text-gray-600">Loading your leads...</p>
-            </motion.div>
-          ) : filteredLeads.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="card-glass text-center py-20"
-            >
-              <Briefcase className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No leads found</h3>
-              <p className="text-gray-600">New leads will appear here when they arrive</p>
-            </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="grid gap-6 md:grid-cols-2 lg:grid-cols-1"
-            >
-              {filteredLeads.map((lead, index) => (
-                <motion.div
-                  key={lead.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <LeadCard
-                    lead={{
-                      id: lead.id,
-                      name: lead.customerName,
-                      location: lead.address,
-                      service: lead.description,
-                      estimatedValue: lead.estimatedValue,
-                      createdAt: lead.createdAt,
-                      priority: lead.urgency === 'high' ? 'urgent' : lead.urgency as any,
-                      status: lead.status as any,
-                      phone: lead.customerPhone,
-                      email: lead.customerEmail,
-                      preferredTime: `${new Date(lead.preferredDate).toLocaleDateString()} at ${lead.preferredTime}`,
-                    }}
-                    onViewDetails={() => setSelectedLead(lead)}
-                  />
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
+        )}
       </div>
 
-      {/* Modern Lead Detail Modal */}
+      {/* Minimal Lead Detail Modal */}
       <AnimatePresence>
         {selectedLead && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            className="fixed inset-0 bg-white flex items-center justify-center p-6 z-50"
             onClick={() => setSelectedLead(null)}
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl"
+              className="bg-white border border-black max-w-4xl w-full max-h-[90vh] overflow-hidden"
             >
               {/* Modal Header */}
-              <div className="bg-gradient-primary p-6 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-2xl font-bold">Lead Details</h2>
-                    <p className="text-white/80 mt-1">Review and take action on this lead</p>
-                  </div>
-                  <button
-                    onClick={() => setSelectedLead(null)}
-                    className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                  >
-                    <XCircle className="h-6 w-6" />
-                  </button>
+              <div className="border-b border-black p-6 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold">LEAD DETAILS</h2>
+                  <p className="text-sm text-gray-600 mt-1">ID: {selectedLead.id.slice(0, 8)}</p>
                 </div>
+                <button
+                  onClick={() => setSelectedLead(null)}
+                  className="text-gray-600 hover:text-black transition-colors"
+                >
+                  <XCircle className="h-5 w-5" />
+                </button>
               </div>
 
               {/* Modal Content */}
               <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
-                {/* Customer & Job Info Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <div className="card-modern p-4">
-                    <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <div className="h-8 w-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                        <AlertCircle className="h-4 w-4 text-purple-600" />
-                      </div>
-                      Customer Information
-                    </h3>
-                    <div className="space-y-3 text-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="text-gray-500">Name:</div>
-                        <div className="font-medium">{selectedLead.customerName}</div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Phone className="h-4 w-4 text-gray-400" />
-                        <a href={`tel:${selectedLead.customerPhone}`} className="text-purple-600 hover:underline">
-                          {selectedLead.customerPhone}
-                        </a>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Mail className="h-4 w-4 text-gray-400" />
-                        <a href={`mailto:${selectedLead.customerEmail}`} className="text-purple-600 hover:underline">
-                          {selectedLead.customerEmail}
-                        </a>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
-                        <div>{selectedLead.address}</div>
-                      </div>
+                {/* Customer & Job Info */}
+                <div className="grid grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <h3 className="font-bold mb-4">CUSTOMER</h3>
+                    <div className="space-y-2 text-sm">
+                      <div>{selectedLead.customerName}</div>
+                      <div className="text-gray-600">{selectedLead.customerPhone}</div>
+                      <div className="text-gray-600">{selectedLead.customerEmail}</div>
+                      <div className="text-gray-600">{selectedLead.address}</div>
                     </div>
                   </div>
 
-                  <div className="card-modern p-4">
-                    <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <div className="h-8 w-8 bg-green-100 rounded-lg flex items-center justify-center">
-                        <Calendar className="h-4 w-4 text-green-600" />
-                      </div>
-                      Job Details
-                    </h3>
-                    <div className="space-y-3 text-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="text-gray-500">Property:</div>
-                        <div className="font-medium">{selectedLead.propertyType}</div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-gray-500">Date:</div>
-                        <div className="font-medium">{new Date(selectedLead.preferredDate).toLocaleDateString()}</div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-gray-500">Time:</div>
-                        <div className="font-medium">{selectedLead.preferredTime}</div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-gray-500">Priority:</div>
-                        <span className={cn(
-                          "px-2 py-0.5 rounded-full text-xs font-semibold uppercase",
-                          selectedLead.urgency === 'high' && "bg-red-100 text-red-700",
-                          selectedLead.urgency === 'medium' && "bg-yellow-100 text-yellow-700",
-                          selectedLead.urgency === 'low' && "bg-gray-100 text-gray-700"
-                        )}>
-                          {selectedLead.urgency}
-                        </span>
-                      </div>
+                  <div>
+                    <h3 className="font-bold mb-4">JOB</h3>
+                    <div className="space-y-2 text-sm">
+                      <div>Date: {new Date(selectedLead.preferredDate).toLocaleDateString()}</div>
+                      <div>Time: {selectedLead.preferredTime}</div>
+                      <div>Type: {selectedLead.propertyType}</div>
+                      <div>Priority: {selectedLead.urgency.toUpperCase()}</div>
                     </div>
                   </div>
                 </div>
 
                 {/* Description */}
-                <div className="card-modern p-4 mb-6">
-                  <h3 className="font-semibold text-gray-900 mb-3">Description</h3>
-                  <p className="text-gray-700 leading-relaxed">{selectedLead.description}</p>
+                <div className="mb-6">
+                  <h3 className="font-bold mb-2">DESCRIPTION</h3>
+                  <p className="text-sm text-gray-700">{selectedLead.description}</p>
                 </div>
 
-                {/* Items Grid */}
+                {/* Items */}
                 {selectedLead.items && selectedLead.items.length > 0 && (
                   <div className="mb-6">
-                    <h3 className="font-semibold text-gray-900 mb-4">Identified Items</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <h3 className="font-bold mb-4">ITEMS</h3>
+                    <div className="space-y-2">
                       {selectedLead.items.map((item: any, index: number) => (
-                        <div key={index} className="card-modern p-3">
-                          <p className="font-medium text-gray-900">{item.name}</p>
-                          <div className="flex gap-4 mt-2 text-xs text-gray-600">
-                            <span>Qty: {item.quantity}</span>
-                            <span>Condition: {item.condition}</span>
-                          </div>
+                        <div key={index} className="border border-gray-200 p-3 text-sm">
+                          <span className="font-medium">{item.name}</span>
+                          <span className="text-gray-600 ml-4">Qty: {item.quantity}</span>
                         </div>
                       ))}
                     </div>
@@ -572,10 +476,10 @@ export default function ModernProviderDashboard() {
                 {/* Photos */}
                 {selectedLead.photos && selectedLead.photos.length > 0 && (
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-4">Photos</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <h3 className="font-bold mb-4">PHOTOS</h3>
+                    <div className="grid grid-cols-4 gap-2">
                       {selectedLead.photos.map((photo, index) => (
-                        <div key={index} className="aspect-square rounded-lg overflow-hidden hover:scale-105 transition-transform">
+                        <div key={index} className="aspect-square border border-black overflow-hidden">
                           <img
                             src={photo}
                             alt={`Photo ${index + 1}`}
@@ -588,57 +492,49 @@ export default function ModernProviderDashboard() {
                 )}
               </div>
 
-              {/* Modal Footer with Actions */}
-              <div className="border-t border-gray-100 p-6 bg-gradient-to-br from-blue-50 to-indigo-50">
+              {/* Modal Footer */}
+              <div className="border-t border-black p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Estimated Value</p>
-                    <p className="text-3xl font-bold text-gradient-success">${selectedLead.estimatedValue}</p>
+                    <div className="text-3xl font-bold">${selectedLead.estimatedValue}</div>
+                    <div className="text-sm text-gray-600">Estimated value</div>
                   </div>
 
-                  <div className="flex gap-3">
+                  <div className="flex gap-4">
                     {(selectedLead.status === 'new' || selectedLead.status === 'contacted') && (
                       <>
                         {selectedLead.status === 'new' && (
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
+                          <button
                             onClick={() => handleUpdateStatus(selectedLead.id, selectedLead.distributionId, 'contacted')}
-                            className="px-6 py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
+                            className="px-6 py-2 border border-black hover:bg-gray-100 transition-colors font-medium"
                           >
-                            Mark Contacted
-                          </motion.button>
+                            MARK CONTACTED
+                          </button>
                         )}
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
+                        <button
                           onClick={() => handleUpdateStatus(selectedLead.id, selectedLead.distributionId, 'won')}
-                          className="px-6 py-3 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors"
+                          className="px-6 py-2 bg-black text-white hover:bg-gray-900 transition-colors font-medium"
                         >
-                          Won Job
-                        </motion.button>
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
+                          WON JOB
+                        </button>
+                        <button
                           onClick={() => handleUpdateStatus(selectedLead.id, selectedLead.distributionId, 'lost')}
-                          className="px-6 py-3 rounded-lg bg-gray-600 text-white font-medium hover:bg-gray-700 transition-colors"
+                          className="px-6 py-2 border border-gray-400 text-gray-400 hover:border-gray-600 hover:text-gray-600 transition-colors font-medium"
                         >
-                          Lost Job
-                        </motion.button>
+                          LOST JOB
+                        </button>
                       </>
                     )}
 
                     {selectedLead.status === 'won' && (
-                      <div className="px-6 py-3 bg-green-100 text-green-800 rounded-lg font-medium flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5" />
-                        You won this job!
+                      <div className="px-6 py-2 bg-black text-white font-medium">
+                        JOB WON
                       </div>
                     )}
 
                     {selectedLead.status === 'lost' && (
-                      <div className="px-6 py-3 bg-gray-100 text-gray-800 rounded-lg font-medium flex items-center gap-2">
-                        <XCircle className="h-5 w-5" />
-                        Job lost
+                      <div className="px-6 py-2 border border-gray-400 text-gray-400 font-medium">
+                        JOB LOST
                       </div>
                     )}
                   </div>
