@@ -107,93 +107,81 @@ export default function ProviderSettings() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <div className="min-h-screen bg-white">
+      <header className="border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">Provider Settings</h1>
-            <a href="/provider" className="text-blue-600 hover:text-blue-800">
+            <h1 className="text-xl font-medium">Settings</h1>
+            <a href="/provider" className="text-sm text-gray-500 hover:text-gray-900">
               ← Back to Dashboard
             </a>
           </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Subscription & Billing */}
+          {/* Left Column - Subscription */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Current Plan Status */}
-            <div className="bg-white rounded-lg shadow p-6">
+            {/* Current Plan */}
+            <div className="border border-gray-200 rounded-lg p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold flex items-center gap-2">
-                  <CreditCardIcon className="w-6 h-6" />
-                  Subscription & Credits
-                </h2>
-                <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                <h2 className="text-lg font-medium">Subscription</h2>
+                <span className="text-sm font-medium text-gray-900">
                   {currentPlan} Plan
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <p className="text-3xl font-bold text-gray-900">{creditsRemaining}</p>
-                  <p className="text-sm text-gray-600">Credits Remaining</p>
+              <div className="grid grid-cols-3 gap-6 mb-6">
+                <div>
+                  <p className="text-2xl font-medium">{creditsRemaining}</p>
+                  <p className="text-sm text-gray-500">Credits left</p>
                 </div>
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <p className="text-3xl font-bold text-gray-900">{creditsUsed}</p>
-                  <p className="text-sm text-gray-600">Used This Month</p>
+                <div>
+                  <p className="text-2xl font-medium">{creditsUsed}</p>
+                  <p className="text-sm text-gray-500">Used</p>
                 </div>
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <p className="text-3xl font-bold text-green-600">72%</p>
-                  <p className="text-sm text-gray-600">Win Rate</p>
+                <div>
+                  <p className="text-2xl font-medium">72%</p>
+                  <p className="text-sm text-gray-500">Win rate</p>
                 </div>
               </div>
 
-              <div className="relative pt-1">
-                <div className="flex mb-2 items-center justify-between">
-                  <div>
-                    <span className="text-xs font-semibold inline-block text-blue-600">
-                      Lead Credits Usage
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-xs font-semibold inline-block text-blue-600">
-                      {Math.round((creditsUsed / (currentPlanData?.credits || 25)) * 100)}%
-                    </span>
-                  </div>
+              <div className="mb-4">
+                <div className="flex justify-between text-sm text-gray-500 mb-2">
+                  <span>Credit usage</span>
+                  <span>{Math.round((creditsUsed / (currentPlanData?.credits || 25)) * 100)}%</span>
                 </div>
-                <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-blue-100">
+                <div className="h-2 bg-gray-200 rounded-full">
                   <div
+                    className="h-2 bg-gray-900 rounded-full transition-all"
                     style={{ width: `${(creditsUsed / (currentPlanData?.credits || 25)) * 100}%` }}
-                    className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500"
                   />
                 </div>
               </div>
 
-              <p className="text-sm text-gray-600">
-                Additional leads: <span className="font-semibold">${currentPlan === 'Basic' ? 25 : currentPlan === 'Elite' ? 15 : 20}</span> each after credits are used
+              <p className="text-sm text-gray-500">
+                Additional leads: <span className="font-medium text-gray-900">${currentPlan === 'Basic' ? 25 : currentPlan === 'Elite' ? 15 : 20}</span> each
               </p>
             </div>
 
-            {/* Subscription Plans */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold mb-6">Change Plan</h2>
+            {/* Plans */}
+            <div className="border border-gray-200 rounded-lg p-6">
+              <h2 className="text-lg font-medium mb-6">Change Plan</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {subscriptionPlans.map((plan) => (
-                  <motion.div
+                  <div
                     key={plan.name}
-                    whileHover={{ scale: 1.02 }}
-                    className={`relative rounded-lg border-2 p-6 cursor-pointer ${
+                    className={`relative border rounded-lg p-4 cursor-pointer ${
                       currentPlan === plan.name
-                        ? 'border-blue-500 bg-blue-50'
+                        ? 'border-gray-900'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                     onClick={() => setCurrentPlan(plan.name)}
                   >
                     {plan.popular && (
-                      <span className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs rounded-full">
-                        Most Popular
+                      <span className="absolute -top-2 left-4 px-2 py-0.5 bg-white text-xs font-medium">
+                        Popular
                       </span>
                     )}
 

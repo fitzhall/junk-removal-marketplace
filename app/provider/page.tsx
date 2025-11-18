@@ -280,28 +280,25 @@ export default function ModernProviderDashboard() {
     )
   }
 
-  // Minimalist Desktop view
+  // Simple Modern Desktop view
   return (
     <div className="min-h-screen bg-white">
-      {/* Minimal Header */}
-      <header className="border-b border-black">
+      {/* Simple Header */}
+      <header className="border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold">PROVIDER DASHBOARD</h1>
-              <p className="text-sm text-gray-600 mt-1">Manage leads</p>
-            </div>
-            <div className="flex items-center gap-6">
+            <h1 className="text-xl font-medium">Lead Dashboard</h1>
+            <div className="flex items-center gap-4">
               <button
                 onClick={handleRefresh}
-                className="text-gray-600 hover:text-black transition-colors"
+                className="text-gray-500 hover:text-gray-900"
                 title="Refresh"
               >
-                <RefreshCw className={cn("h-5 w-5", loading && "animate-spin")} />
+                <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
               </button>
               <a
                 href="/provider/settings"
-                className="text-sm font-medium hover:underline"
+                className="text-sm text-gray-500 hover:text-gray-900"
               >
                 Settings
               </a>
@@ -311,38 +308,38 @@ export default function ModernProviderDashboard() {
       </header>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Minimal Stats */}
-        <div className="grid grid-cols-4 gap-px bg-black mb-8">
-          <div className="bg-white p-6">
-            <div className="text-sm text-gray-600">Total Leads</div>
-            <div className="text-3xl font-bold mt-2">{stats.totalLeads}</div>
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        {/* Simple Stats Row */}
+        <div className="flex items-center gap-8 mb-8 pb-6 border-b border-gray-200">
+          <div>
+            <div className="text-2xl font-medium">{stats.totalLeads}</div>
+            <div className="text-sm text-gray-500">Total Leads</div>
           </div>
-          <div className="bg-white p-6">
-            <div className="text-sm text-gray-600">Won</div>
-            <div className="text-3xl font-bold mt-2">{stats.acceptedLeads}</div>
+          <div>
+            <div className="text-2xl font-medium">{stats.acceptedLeads}</div>
+            <div className="text-sm text-gray-500">Won</div>
           </div>
-          <div className="bg-white p-6">
-            <div className="text-sm text-gray-600">Revenue</div>
-            <div className="text-3xl font-bold mt-2">${stats.revenue}</div>
+          <div>
+            <div className="text-2xl font-medium">${stats.revenue.toLocaleString()}</div>
+            <div className="text-sm text-gray-500">Revenue</div>
           </div>
-          <div className="bg-white p-6">
-            <div className="text-sm text-gray-600">Conversion</div>
-            <div className="text-3xl font-bold mt-2">{stats.conversionRate}%</div>
+          <div>
+            <div className="text-2xl font-medium">{stats.conversionRate}%</div>
+            <div className="text-sm text-gray-500">Win Rate</div>
           </div>
         </div>
 
-        {/* Minimal Filter Tabs */}
-        <div className="flex items-center gap-6 mb-8 border-b border-gray-200 pb-4">
+        {/* Simple Filter Tabs */}
+        <div className="flex items-center gap-6 mb-6">
           {filterTabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setFilter(tab.id as any)}
               className={cn(
-                "text-sm font-medium transition-colors",
+                "text-sm",
                 filter === tab.id
-                  ? "text-black"
-                  : "text-gray-400 hover:text-gray-600"
+                  ? "text-gray-900 font-medium"
+                  : "text-gray-500 hover:text-gray-900"
               )}
             >
               {tab.label} ({tab.count})
@@ -350,60 +347,86 @@ export default function ModernProviderDashboard() {
           ))}
         </div>
 
-        {/* Minimal Leads List */}
+        {/* Simple Table View */}
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="text-gray-400">Loading...</div>
-          </div>
+          <div className="text-center py-20 text-gray-400">Loading...</div>
         ) : filteredLeads.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="text-gray-400">No leads found</div>
-          </div>
+          <div className="text-center py-20 text-gray-400">No leads found</div>
         ) : (
-          <div className="space-y-px bg-black">
-            {filteredLeads.map((lead) => (
-              <div
-                key={lead.id}
-                className="bg-white p-6 hover:bg-gray-50 cursor-pointer transition-colors"
-                onClick={() => setSelectedLead(lead)}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-4 mb-2">
-                      <h3 className="font-bold">{lead.customerName}</h3>
-                      {lead.urgency === 'high' && (
-                        <span className="text-xs font-bold text-red-600">[URGENT]</span>
-                      )}
-                      {lead.status === 'new' && (
-                        <span className="text-xs font-bold">[NEW]</span>
-                      )}
-                    </div>
-                    <div className="text-sm text-gray-600 space-y-1">
-                      <div>{lead.address}</div>
-                      <div>{new Date(lead.preferredDate).toLocaleDateString()} at {lead.preferredTime}</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold">${lead.estimatedValue}</div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {lead.status.toUpperCase()}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Customer
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Location
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Schedule
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Value
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredLeads.map((lead) => (
+                  <tr
+                    key={lead.id}
+                    onClick={() => setSelectedLead(lead)}
+                    className="hover:bg-gray-50 cursor-pointer"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{lead.customerName}</div>
+                        <div className="text-sm text-gray-500">{lead.customerPhone}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">{lead.address}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {new Date(lead.preferredDate).toLocaleDateString()}
+                      </div>
+                      <div className="text-sm text-gray-500">{lead.preferredTime}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={cn(
+                        "px-2 inline-flex text-xs leading-5 font-medium rounded-full",
+                        lead.status === 'new' && "bg-blue-100 text-blue-800",
+                        lead.status === 'contacted' && "bg-yellow-100 text-yellow-800",
+                        lead.status === 'won' && "bg-green-100 text-green-800",
+                        lead.status === 'lost' && "bg-gray-100 text-gray-800"
+                      )}>
+                        {lead.status}
+                        {lead.urgency === 'high' && ' • URGENT'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <div className="text-sm font-medium text-gray-900">${lead.estimatedValue}</div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
 
-      {/* Minimal Lead Detail Modal */}
+      {/* Simple Lead Detail Modal */}
       <AnimatePresence>
         {selectedLead && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-white flex items-center justify-center p-6 z-50"
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-6 z-50"
             onClick={() => setSelectedLead(null)}
           >
             <motion.div
@@ -411,17 +434,14 @@ export default function ModernProviderDashboard() {
               animate={{ scale: 1 }}
               exit={{ scale: 0.95 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white border border-black max-w-4xl w-full max-h-[90vh] overflow-hidden"
+              className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
             >
               {/* Modal Header */}
-              <div className="border-b border-black p-6 flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-bold">LEAD DETAILS</h2>
-                  <p className="text-sm text-gray-600 mt-1">ID: {selectedLead.id.slice(0, 8)}</p>
-                </div>
+              <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <h2 className="text-lg font-medium">Lead Details</h2>
                 <button
                   onClick={() => setSelectedLead(null)}
-                  className="text-gray-600 hover:text-black transition-colors"
+                  className="text-gray-400 hover:text-gray-600"
                 >
                   <XCircle className="h-5 w-5" />
                 </button>
@@ -429,57 +449,55 @@ export default function ModernProviderDashboard() {
 
               {/* Modal Content */}
               <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
-                {/* Customer & Job Info */}
-                <div className="grid grid-cols-2 gap-6 mb-6">
+                {/* Info Grid */}
+                <dl className="grid grid-cols-2 gap-4 mb-6">
                   <div>
-                    <h3 className="font-bold mb-4">CUSTOMER</h3>
-                    <div className="space-y-2 text-sm">
-                      <div>{selectedLead.customerName}</div>
-                      <div className="text-gray-600">{selectedLead.customerPhone}</div>
-                      <div className="text-gray-600">{selectedLead.customerEmail}</div>
-                      <div className="text-gray-600">{selectedLead.address}</div>
-                    </div>
+                    <dt className="text-sm font-medium text-gray-500">Customer</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{selectedLead.customerName}</dd>
                   </div>
-
                   <div>
-                    <h3 className="font-bold mb-4">JOB</h3>
-                    <div className="space-y-2 text-sm">
-                      <div>Date: {new Date(selectedLead.preferredDate).toLocaleDateString()}</div>
-                      <div>Time: {selectedLead.preferredTime}</div>
-                      <div>Type: {selectedLead.propertyType}</div>
-                      <div>Priority: {selectedLead.urgency.toUpperCase()}</div>
-                    </div>
+                    <dt className="text-sm font-medium text-gray-500">Phone</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{selectedLead.customerPhone}</dd>
                   </div>
-                </div>
-
-                {/* Description */}
-                <div className="mb-6">
-                  <h3 className="font-bold mb-2">DESCRIPTION</h3>
-                  <p className="text-sm text-gray-700">{selectedLead.description}</p>
-                </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Email</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{selectedLead.customerEmail}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Schedule</dt>
+                    <dd className="mt-1 text-sm text-gray-900">
+                      {new Date(selectedLead.preferredDate).toLocaleDateString()} at {selectedLead.preferredTime}
+                    </dd>
+                  </div>
+                  <div className="col-span-2">
+                    <dt className="text-sm font-medium text-gray-500">Address</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{selectedLead.address}</dd>
+                  </div>
+                  <div className="col-span-2">
+                    <dt className="text-sm font-medium text-gray-500">Notes</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{selectedLead.description}</dd>
+                  </div>
+                </dl>
 
                 {/* Items */}
                 {selectedLead.items && selectedLead.items.length > 0 && (
                   <div className="mb-6">
-                    <h3 className="font-bold mb-4">ITEMS</h3>
-                    <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-gray-500 mb-2">Items</h4>
+                    <ul className="text-sm text-gray-900 space-y-1">
                       {selectedLead.items.map((item: any, index: number) => (
-                        <div key={index} className="border border-gray-200 p-3 text-sm">
-                          <span className="font-medium">{item.name}</span>
-                          <span className="text-gray-600 ml-4">Qty: {item.quantity}</span>
-                        </div>
+                        <li key={index}>{item.name} (Qty: {item.quantity})</li>
                       ))}
-                    </div>
+                    </ul>
                   </div>
                 )}
 
                 {/* Photos */}
                 {selectedLead.photos && selectedLead.photos.length > 0 && (
                   <div>
-                    <h3 className="font-bold mb-4">PHOTOS</h3>
+                    <h4 className="text-sm font-medium text-gray-500 mb-2">Photos</h4>
                     <div className="grid grid-cols-4 gap-2">
                       {selectedLead.photos.map((photo, index) => (
-                        <div key={index} className="aspect-square border border-black overflow-hidden">
+                        <div key={index} className="aspect-square rounded overflow-hidden">
                           <img
                             src={photo}
                             alt={`Photo ${index + 1}`}
@@ -493,48 +511,48 @@ export default function ModernProviderDashboard() {
               </div>
 
               {/* Modal Footer */}
-              <div className="border-t border-black p-6">
+              <div className="border-t border-gray-200 px-6 py-4 bg-gray-50">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-3xl font-bold">${selectedLead.estimatedValue}</div>
-                    <div className="text-sm text-gray-600">Estimated value</div>
+                    <div className="text-2xl font-medium text-gray-900">${selectedLead.estimatedValue}</div>
+                    <div className="text-sm text-gray-500">Estimated value</div>
                   </div>
 
-                  <div className="flex gap-4">
+                  <div className="flex gap-3">
                     {(selectedLead.status === 'new' || selectedLead.status === 'contacted') && (
                       <>
                         {selectedLead.status === 'new' && (
                           <button
                             onClick={() => handleUpdateStatus(selectedLead.id, selectedLead.distributionId, 'contacted')}
-                            className="px-6 py-2 border border-black hover:bg-gray-100 transition-colors font-medium"
+                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
                           >
-                            MARK CONTACTED
+                            Mark Contacted
                           </button>
                         )}
                         <button
                           onClick={() => handleUpdateStatus(selectedLead.id, selectedLead.distributionId, 'won')}
-                          className="px-6 py-2 bg-black text-white hover:bg-gray-900 transition-colors font-medium"
+                          className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
                         >
-                          WON JOB
+                          Won Job
                         </button>
                         <button
                           onClick={() => handleUpdateStatus(selectedLead.id, selectedLead.distributionId, 'lost')}
-                          className="px-6 py-2 border border-gray-400 text-gray-400 hover:border-gray-600 hover:text-gray-600 transition-colors font-medium"
+                          className="px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
                         >
-                          LOST JOB
+                          Lost Job
                         </button>
                       </>
                     )}
 
                     {selectedLead.status === 'won' && (
-                      <div className="px-6 py-2 bg-black text-white font-medium">
-                        JOB WON
+                      <div className="px-4 py-2 text-sm font-medium text-green-800 bg-green-100 rounded-md">
+                        ✓ Job Won
                       </div>
                     )}
 
                     {selectedLead.status === 'lost' && (
-                      <div className="px-6 py-2 border border-gray-400 text-gray-400 font-medium">
-                        JOB LOST
+                      <div className="px-4 py-2 text-sm font-medium text-gray-500 bg-gray-100 rounded-md">
+                        Job Lost
                       </div>
                     )}
                   </div>
