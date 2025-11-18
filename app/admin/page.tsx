@@ -106,10 +106,10 @@ export default function ModernAdminDashboard() {
   // Navigation tabs
   const navTabs = [
     { id: 'overview', label: 'Overview', href: '/admin', active: true },
+    { id: 'companies', label: 'Companies', href: '/admin/companies' },
     { id: 'leads', label: 'Leads', href: '/admin/leads' },
     { id: 'providers', label: 'Providers', href: '/admin/providers' },
-    { id: 'finance', label: 'Finance', href: '/admin/finance' },
-    { id: 'settings', label: 'Settings', href: '/admin/settings' }
+    { id: 'finance', label: 'Finance', href: '/admin/finance' }
   ]
 
   if (isMobile) {
