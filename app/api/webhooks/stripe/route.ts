@@ -84,6 +84,103 @@ export async function POST(request: Request) {
         break
       }
 
+      // Company subscription events
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object as Stripe.Subscription
+
+        console.log(`📋 Subscription ${event.type}:`, subscription.id)
+
+        const companyId = subscription.metadata?.companyId
+        const plan = subscription.metadata?.plan
+
+        if (companyId && plan) {
+          await prisma.company.update({
+            where: { id: companyId },
+            data: {
+              subscriptionId: subscription.id,
+              subscriptionPlan: plan as any,
+              subscriptionStatus: subscription.status === 'active' ? 'ACTIVE' : subscription.status === 'past_due' ? 'PAST_DUE' : 'TRIALING',
+              activationPaidAt: subscription.status === 'active' ? new Date() : undefined,
+            }
+          })
+
+          console.log(`✅ Company ${companyId} subscription updated to ${plan}`)
+        }
+
+        break
+      }
+
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object as Stripe.Subscription
+
+        console.log('🗑️ Subscription deleted:', subscription.id)
+
+        const companyId = subscription.metadata?.companyId
+
+        if (companyId) {
+          await prisma.company.update({
+            where: { id: companyId },
+            data: {
+              subscriptionStatus: 'CANCELLED',
+              isActive: false,
+            }
+          })
+
+          console.log(`❌ Company ${companyId} subscription cancelled`)
+        }
+
+        break
+      }
+
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object as Stripe.Invoice
+
+        console.log('💰 Payment succeeded for invoice:', invoice.id)
+
+        if (invoice.subscription && typeof invoice.subscription === 'string') {
+          const subscription = await stripe.subscriptions.retrieve(invoice.subscription)
+          const companyId = subscription.metadata?.companyId
+
+          if (companyId) {
+            await prisma.company.update({
+              where: { id: companyId },
+              data: {
+                subscriptionStatus: 'ACTIVE',
+              }
+            })
+
+            console.log(`✅ Company ${companyId} payment succeeded`)
+          }
+        }
+
+        break
+      }
+
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as Stripe.Invoice
+
+        console.log('❌ Payment failed for invoice:', invoice.id)
+
+        if (invoice.subscription && typeof invoice.subscription === 'string') {
+          const subscription = await stripe.subscriptions.retrieve(invoice.subscription)
+          const companyId = subscription.metadata?.companyId
+
+          if (companyId) {
+            await prisma.company.update({
+              where: { id: companyId },
+              data: {
+                subscriptionStatus: 'PAST_DUE',
+              }
+            })
+
+            console.log(`⚠️ Company ${companyId} payment failed - marked as PAST_DUE`)
+          }
+        }
+
+        break
+      }
+
       default:
         console.log(`Unhandled event type: ${event.type}`)
     }

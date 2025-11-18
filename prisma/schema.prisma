@@ -76,6 +76,12 @@ enum SubscriptionStatus {
   TRIALING
 }
 
+enum SubscriptionPlan {
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
 model Company {
   id                 String             @id @default(uuid())
   slug               String             @unique // e.g., "acme-junk" for URL
@@ -93,6 +99,7 @@ model Company {
   isActive           Boolean            @default(true)
 
   // Subscription
+  subscriptionPlan   SubscriptionPlan   @default(STARTER)
   subscriptionStatus SubscriptionStatus @default(TRIALING)
   subscriptionId     String?            // Stripe subscription ID
   activationFee      Float              @default(500)
