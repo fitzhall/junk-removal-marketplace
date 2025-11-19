@@ -29,28 +29,24 @@ const JOB_SIZES = [
     value: 'small',
     label: 'Small',
     description: 'Few items (1-5)',
-    priceRange: '$75-150',
     icon: '📦'
   },
   {
     value: 'medium',
     label: 'Medium',
     description: 'Single room',
-    priceRange: '$150-350',
     icon: '🏠'
   },
   {
     value: 'large',
     label: 'Large',
     description: 'Multiple rooms',
-    priceRange: '$350-700',
     icon: '🏘️'
   },
   {
     value: 'huge',
     label: 'Huge',
     description: 'Whole house',
-    priceRange: '$700-1500',
     icon: '🏢'
   }
 ]
@@ -71,21 +67,18 @@ const ACCESS_LEVELS = [
     value: 'easy',
     label: 'Easy Access',
     description: 'Curbside or driveway',
-    modifier: 'No extra charge',
     icon: '✅'
   },
   {
     value: 'standard',
     label: 'Standard Access',
     description: 'Garage or ground floor',
-    modifier: 'Standard pricing',
     icon: '🚪'
   },
   {
     value: 'difficult',
     label: 'Difficult Access',
     description: 'Stairs, tight spaces, or long carry',
-    modifier: '+$50-150',
     icon: '⚠️'
   }
 ]
@@ -94,19 +87,19 @@ const URGENCY_OPTIONS = [
   {
     value: 'same_day',
     label: 'Same Day',
-    modifier: '+30%',
+    description: 'Emergency service',
     icon: '🚨'
   },
   {
     value: 'next_day',
     label: 'Next Day',
-    modifier: '+15%',
+    description: 'Fast service',
     icon: '⏰'
   },
   {
     value: 'within_week',
     label: 'Within a Week',
-    modifier: 'Standard pricing',
+    description: 'Standard service',
     icon: '📅'
   }
 ]
@@ -208,7 +201,6 @@ export default function JobDetailsForm({ onDetailsSubmit, initialDetails }: JobD
                 <div className="flex-1 text-left">
                   <p className="font-semibold">{size.label}</p>
                   <p className="text-sm text-gray-600">{size.description}</p>
-                  <p className="text-sm font-medium text-green-600 mt-1">{size.priceRange}</p>
                 </div>
                 {details.jobSize === size.value && (
                   <CheckIcon className="w-5 h-5 text-green-600 absolute top-3 right-3" />
@@ -277,19 +269,15 @@ export default function JobDetailsForm({ onDetailsSubmit, initialDetails }: JobD
                   : 'border-gray-200 hover:border-gray-300'
               }`}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{level.icon}</span>
-                  <div className="text-left">
-                    <p className="font-semibold">{level.label}</p>
-                    <p className="text-sm text-gray-600">{level.description}</p>
-                  </div>
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{level.icon}</span>
+                <div className="text-left">
+                  <p className="font-semibold">{level.label}</p>
+                  <p className="text-sm text-gray-600">{level.description}</p>
                 </div>
-                <span className={`text-sm font-medium ${
-                  level.modifier.includes('+') ? 'text-orange-600' : 'text-gray-600'
-                }`}>
-                  {level.modifier}
-                </span>
+                {details.accessDifficulty === level.value && (
+                  <CheckIcon className="w-5 h-5 text-green-600 ml-auto" />
+                )}
               </div>
             </motion.button>
           ))}
@@ -325,11 +313,12 @@ export default function JobDetailsForm({ onDetailsSubmit, initialDetails }: JobD
               <div className="flex flex-col items-center gap-2">
                 <span className="text-2xl">{option.icon}</span>
                 <p className="font-semibold">{option.label}</p>
-                <p className={`text-sm font-medium ${
-                  option.modifier.includes('+') ? 'text-orange-600' : 'text-gray-600'
-                }`}>
-                  {option.modifier}
-                </p>
+                {option.description && (
+                  <p className="text-sm text-gray-600">{option.description}</p>
+                )}
+                {details.urgency === option.value && (
+                  <CheckIcon className="w-4 h-4 text-green-600" />
+                )}
               </div>
             </motion.button>
           ))}

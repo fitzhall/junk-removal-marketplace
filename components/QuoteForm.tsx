@@ -711,17 +711,17 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
                       <div className="flex items-center gap-4">
                         {item.confidence !== undefined && item.confidence > 0 && item.confidence < 100 && (
                           <div className="flex items-center gap-2">
-                            <div className="w-20 bg-gray-200 rounded-full h-2">
+                            <div className="w-20 bg-gray-200 rounded-full h-2 overflow-hidden">
                               <div
-                                className={`h-2 rounded-full transition-all ${
+                                className={`h-full rounded-full transition-all ${
                                   item.confidence >= 90 ? 'bg-green-500' :
                                   item.confidence >= 70 ? 'bg-yellow-500' :
                                   'bg-orange-500'
                                 }`}
-                                style={{ width: `${item.confidence}%` }}
+                                style={{ width: `${Math.min(100, Math.max(0, item.confidence))}%` }}
                               />
                             </div>
-                            <span className={`text-sm font-medium ${
+                            <span className={`text-sm font-medium whitespace-nowrap ${
                               item.confidence >= 90 ? 'text-green-600' :
                               item.confidence >= 70 ? 'text-yellow-600' :
                               'text-orange-600'
