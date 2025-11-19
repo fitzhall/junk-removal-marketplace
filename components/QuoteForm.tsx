@@ -26,7 +26,12 @@ import {
 } from '@heroicons/react/24/outline'
 import { Loader2 } from 'lucide-react'
 
-export default function QuoteForm() {
+interface QuoteFormProps {
+  companyId?: string
+  companySlug?: string
+}
+
+export default function QuoteForm({ companyId, companySlug }: QuoteFormProps = {}) {
   const [step, setStep] = useState(1)
   const [photos, setPhotos] = useState<File[]>([])
   const [jobDetails, setJobDetails] = useState<JobDetails>({
@@ -138,6 +143,14 @@ export default function QuoteForm() {
       formData.append('location', JSON.stringify(location))
       formData.append('customerInfo', JSON.stringify(customerInfo))
       formData.append('jobDetails', JSON.stringify(jobDetails))
+
+      // Add company info for white-label providers
+      if (companyId) {
+        formData.append('companyId', companyId)
+      }
+      if (companySlug) {
+        formData.append('companySlug', companySlug)
+      }
 
       console.log('Submitting quote request with data:', {
         location,
@@ -619,8 +632,20 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
               items={quote.items || []}
               onUpdate={handleItemUpdate}
               onConfirm={() => {
-                setShowItemEditor(false)
-                setStep(5)
+                const params = new URLSearchParams({
+                  id: quote.id || 'QUOTE-' + Date.now(),
+                  min: quote.priceMin.toString(),
+                  max: quote.priceMax.toString(),
+                  ...(jobDetails.jobSize && { size: jobDetails.jobSize }),
+                  ...(jobDetails.accessDifficulty && { access: jobDetails.accessDifficulty }),
+                  ...(jobDetails.urgency && { urgency: jobDetails.urgency })
+                })
+                window.location.href = `/thank-you?${params.toString()}`
+              }}
+              jobDetails={{
+                jobSize: jobDetails.jobSize,
+                accessDifficulty: jobDetails.accessDifficulty,
+                urgency: jobDetails.urgency
               }}
             />
           </motion.div>
@@ -786,8 +811,15 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
               <button
                 onClick={() => {
                   // Redirect to thank-you page with quote details
-                  const avgPrice = Math.round((quote.priceMin + quote.priceMax) / 2)
-                  window.location.href = `/thank-you?id=${quote.id || 'QUOTE-' + Date.now()}&price=${avgPrice}`
+                  const params = new URLSearchParams({
+                    id: quote.id || 'QUOTE-' + Date.now(),
+                    min: quote.priceMin.toString(),
+                    max: quote.priceMax.toString(),
+                    ...(jobDetails.jobSize && { size: jobDetails.jobSize }),
+                    ...(jobDetails.accessDifficulty && { access: jobDetails.accessDifficulty }),
+                    ...(jobDetails.urgency && { urgency: jobDetails.urgency })
+                  })
+                  window.location.href = `/thank-you?${params.toString()}`
                 }}
                 className="bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 px-6 rounded-xl font-semibold text-lg hover:shadow-xl transition-all duration-300"
               >

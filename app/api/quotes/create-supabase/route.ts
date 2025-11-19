@@ -112,10 +112,29 @@ export async function POST(request: NextRequest) {
           requiresSpecialHandling: item.specialHandling || item.requiresSpecialHandling || false,
           confidence: item.confidence || 85  // Default confidence for AI-detected items
         }))
-        pricingNotes = ['AI successfully analyzed photos']
+
+        // Apply job details modifiers to Vision API pricing
+        if (jobDetails && jobDetails.urgency) {
+          if (jobDetails.urgency === 'same_day' || jobDetails.urgency === 'within_24_hours') {
+            priceMin = Math.round(priceMin * 1.15)  // 15% rush fee
+            priceMax = Math.round(priceMax * 1.15)
+            pricingNotes = ['AI analyzed photos', 'Rush service fee applied']
+          } else {
+            pricingNotes = ['AI successfully analyzed photos']
+          }
+        } else {
+          pricingNotes = ['AI successfully analyzed photos']
+        }
+
+        if (jobDetails && jobDetails.accessDifficulty === 'stairs_or_elevator') {
+          priceMin = Math.round(priceMin * 1.1)  // 10% difficulty fee
+          priceMax = Math.round(priceMax * 1.1)
+          pricingNotes.push('Stairs/elevator access fee')
+        }
+
         visionApiSuccess = true
 
-        console.log(`Vision API SUCCESS: Found ${items.length} items`)
+        console.log(`Vision API SUCCESS: Found ${items.length} items, applied job detail modifiers`)
       } catch (visionError) {
         console.log('Vision API failed:', visionError)
         visionApiSuccess = false

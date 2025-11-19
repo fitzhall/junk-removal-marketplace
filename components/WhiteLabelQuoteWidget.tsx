@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import MobileQuoteForm from './MobileQuoteForm'
+import QuoteForm from './QuoteForm'
 
 interface Company {
   id: string
@@ -55,15 +55,13 @@ export default function WhiteLabelQuoteWidget({ company }: WhiteLabelQuoteWidget
         </div>
       </div>
 
-      {/* Quote Form - Pass company data */}
-      <MobileQuoteForm
-        companyId={company.id}
-        companySlug={company.slug}
-        primaryColor={company.primaryColor}
-        onComplete={(quoteData) => {
-          console.log('Quote completed:', quoteData)
-        }}
-      />
+      {/* Quote Form - Unified form for all users */}
+      <div className="container mx-auto px-4 py-8">
+        <QuoteForm
+          companyId={company.id}
+          companySlug={company.slug}
+        />
+      </div>
     </div>
   )
 }

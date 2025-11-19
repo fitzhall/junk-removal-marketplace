@@ -1,28 +1,21 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { useEffect, Suspense } from 'react'
+import { Suspense } from 'react'
 import { CheckCircleIcon, ChatBubbleLeftRightIcon, PhoneIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
-import { motion } from 'framer-motion'
 
 function ThankYouContent() {
   const searchParams = useSearchParams()
   const quoteId = searchParams.get('id')
-  const estimatedPrice = searchParams.get('price')
-
-  useEffect(() => {
-    // Track thank you page view
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', 'view_thank_you', {
-        quote_id: quoteId,
-        value: estimatedPrice ? parseFloat(estimatedPrice) : 0
-      })
-    }
-  }, [quoteId, estimatedPrice])
+  const priceMin = searchParams.get('min')
+  const priceMax = searchParams.get('max')
+  const jobSize = searchParams.get('size')
+  const accessDifficulty = searchParams.get('access')
+  const urgency = searchParams.get('urgency')
 
   const handleTextClick = () => {
-    // Open SMS with pre-filled message
-    window.location.href = `sms:+18005865669?body=Hi! I just got quote ${quoteId}. Can you help me?`
+    const message = encodeURIComponent(`Hi! I just got quote ${quoteId || 'from your site'}. Can you help me?`)
+    window.location.href = `sms:+18005865669?body=${message}`
   }
 
   const handleCallClick = () => {
@@ -33,11 +26,7 @@ function ThankYouContent() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 pb-24">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Success Message */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
-        >
+        <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6">
             <CheckCircleIcon className="w-12 h-12 text-green-600" />
           </div>
@@ -51,15 +40,39 @@ function ThankYouContent() {
           </p>
 
           {/* Price Block */}
-          {estimatedPrice && (
+          {priceMin && priceMax && (
             <div className="bg-white border-2 border-green-200 rounded-2xl p-8 mt-8 inline-block shadow-lg">
               <p className="text-sm text-gray-600 mb-3">Estimated Price Range:</p>
               <p className="text-5xl font-bold text-green-600 mb-3">
-                ${estimatedPrice} - ${parseInt(estimatedPrice) + 125}
+                ${priceMin} - ${priceMax}
               </p>
               <p className="text-sm text-gray-500">Final price confirmed on-site</p>
 
-              {/* Trust Badges - RIGHT BELOW PRICE */}
+              {/* Job Details */}
+              {(jobSize || accessDifficulty || urgency) && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <p className="text-xs text-gray-600 mb-2 font-semibold">Job Details:</p>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {jobSize && (
+                      <span className="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
+                        📦 {jobSize.replace(/_/g, ' ')}
+                      </span>
+                    )}
+                    {accessDifficulty && (
+                      <span className="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
+                        🚪 {accessDifficulty.replace(/_/g, ' ')} access
+                      </span>
+                    )}
+                    {urgency && (
+                      <span className="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
+                        ⏰ {urgency.replace(/_/g, ' ')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Trust Badges */}
               <div className="mt-4 pt-4 border-t border-gray-200">
                 <div className="flex items-center justify-center gap-6 text-xs text-gray-600">
                   <span className="flex items-center gap-1">
@@ -76,22 +89,10 @@ function ThankYouContent() {
             </div>
           )}
 
-          {/* Success Message */}
-          <div className="mt-6 inline-flex items-center gap-2 bg-green-50 border border-green-200 rounded-full px-6 py-3">
-            <CheckCircleIcon className="w-5 h-5 text-green-600" />
-            <span className="text-sm font-medium text-gray-900">
-              We found local haulers who can pick up as early as today
-            </span>
-          </div>
-        </motion.div>
+        </div>
 
-        {/* Want Faster Service - MICROCOPY */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-2xl p-6 mb-8 text-center"
-        >
+        {/* Want Faster Service */}
+        <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-2xl p-6 mb-8 text-center">
           <p className="text-sm font-semibold text-gray-700 mb-3">
             ⚡ Want faster service?
           </p>
@@ -105,20 +106,15 @@ function ThankYouContent() {
             <ChatBubbleLeftRightIcon className="w-5 h-5" />
             Text Photos Now
           </button>
-        </motion.div>
+        </div>
 
-        {/* Need Help Section - PRIMARY CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-white rounded-2xl shadow-xl p-8 mb-8"
-        >
+        {/* Need Help Section */}
+        <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4 text-center">
             Need help or want faster service?
           </h2>
 
-          {/* Text CTA - PRIMARY */}
+          {/* Text CTA */}
           <button
             onClick={handleTextClick}
             className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white p-6 rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all transform hover:scale-105 shadow-lg mb-4 group"
@@ -132,7 +128,7 @@ function ThankYouContent() {
             </p>
           </button>
 
-          {/* Call CTA - SECONDARY */}
+          {/* Call CTA */}
           <button
             onClick={handleCallClick}
             className="w-full flex items-center justify-center gap-2 text-gray-700 py-3 hover:text-green-600 transition-colors"
@@ -140,15 +136,10 @@ function ThankYouContent() {
             <PhoneIcon className="w-5 h-5" />
             <span className="font-medium">Prefer to talk? Call us</span>
           </button>
-        </motion.div>
+        </div>
 
         {/* What Happens Next */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-white rounded-2xl shadow-xl p-8 mb-8"
-        >
+        <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">What Happens Next?</h2>
 
           <div className="space-y-6">
@@ -182,15 +173,10 @@ function ThankYouContent() {
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
 
-        {/* Reserve Pickup CTA - FORWARD MOMENTUM */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="text-center"
-        >
+        {/* Reserve Pickup CTA */}
+        <div className="text-center">
           <button
             onClick={handleTextClick}
             className="inline-flex items-center gap-3 bg-blue-600 text-white px-10 py-5 rounded-2xl font-bold text-lg hover:bg-blue-700 transition-all transform hover:scale-105 shadow-xl"
@@ -203,7 +189,7 @@ function ThankYouContent() {
           <p className="text-sm text-gray-500 mt-3">
             No payment required • Cancel anytime
           </p>
-        </motion.div>
+        </div>
 
         {/* Trust Footer */}
         <div className="text-center mt-12">
@@ -229,7 +215,7 @@ function ThankYouContent() {
         </div>
       </div>
 
-      {/* FIXED STICKY BAR - BOTTOM */}
+      {/* FIXED STICKY BAR */}
       <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-2xl border-t-4 border-green-700 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
