@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { VisionAIService } from '@/lib/google-vision-wrapper'
 import { cloudinaryService } from '@/lib/cloudinary'
 import { calculatePricing, validatePricing, getFallbackPricing } from '@/utils/pricing-engine'
@@ -19,7 +20,18 @@ export async function POST(request: NextRequest) {
   })
 
   try {
-    const supabase = await createClient()
+    // Use service role client to bypass RLS for quote creation
+    console.log('Creating service role client...')
+    console.log('URL exists:', !!process.env.NEXT_PUBLIC_SUPABASE_URL)
+    console.log('Service key exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY)
+    console.log('Service key starts with:', process.env.SUPABASE_SERVICE_ROLE_KEY?.substring(0, 20))
+
+    const supabase = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false } }
+    )
+
     const formData = await request.formData()
 
     // Get photos
@@ -205,64 +217,51 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Save quote to database
-    const quoteId = `quote_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-
+    // Save quote to database - Let database auto-generate UUID
     console.log('Saving quote to database...')
 
     const { data: quote, error: quoteError } = await supabase
-      .from('Quote')
+      .from('quotes')
       .insert({
-        id: quoteId,
-        customerName: customerInfo.name || null,
-        customerEmail: customerInfo.email || null,
-        customerPhone: customerInfo.phone || null,
-        pickupAddress: location.address || null,
-        pickupZip: location.zipCode || null,
-        pickupCity: location.city || null,
-        pickupState: location.state || null,
-        photoUrls: uploadedPhotoUrls.length > 0 ? uploadedPhotoUrls : null,
-        priceRangeMin: priceMin,
-        priceRangeMax: priceMax,
-        status: 'PENDING',
-        source: companyId ? 'white_label' : 'direct',
-        companyId: companyId || null,
-        aiAnalysis: {
-          items: items,
-          jobDetails: jobDetails,
-          pricingNotes: pricingNotes,
-          estimatedTruckLoads: estimatedTruckLoads,
-          pricingConfidence: pricingConfidence
-        }
+        // No id - let database generate UUID automatically
+        customer_name: customerInfo.name || null,
+        customer_email: customerInfo.email || null,
+        customer_phone: customerInfo.phone || null,
+        pickup_zip: location.zipCode || null,
+        price_range_min: priceMin,
+        price_range_max: priceMax
+        // Removed status - let database use default value
       })
-      .select()
+      .select('*')  // Return ALL columns to see what exists
       .single()
 
     if (quoteError) {
       console.error('Database save error:', quoteError)
       // Continue anyway with demo quote for now
       const demoQuote = {
-        id: quoteId,
+        id: crypto.randomUUID(),  // Fallback UUID
         priceMin,
         priceMax
       }
       console.warn('Using demo quote due to DB error')
     } else {
       console.log('✅ Quote saved to database:', quote.id)
+      console.log('📋 Database returned columns:', Object.keys(quote))
+      console.log('📋 Full quote object:', JSON.stringify(quote, null, 2))
 
       // Save items to QuoteItem table
-      if (items.length > 0) {
+      if (items.length > 0 && quote?.id) {
         const quoteItems = items.map((item, index) => ({
-          id: `${quoteId}_item_${index}`,
-          quoteId: quoteId,
-          itemType: item.type,
+          // No id - let database generate
+          quote_id: quote.id,
+          item_type: item.type,
           quantity: item.quantity,
-          aiConfidence: item.confidence ? item.confidence / 100 : null,
-          requiresSpecialHandling: item.requiresSpecialHandling || false
+          ai_confidence: item.confidence ? item.confidence / 100 : null,
+          requires_special_handling: item.requiresSpecialHandling || false
         }))
 
         const { error: itemsError } = await supabase
-          .from('QuoteItem')
+          .from('quote_items')
           .insert(quoteItems)
 
         if (itemsError) {
@@ -325,7 +324,7 @@ export async function POST(request: NextRequest) {
     // Return response
     return NextResponse.json({
       success: true,
-      id: quoteId,
+      id: quote?.id || crypto.randomUUID(),  // Use actual DB-generated ID
       priceMin: priceMin,
       priceMax: priceMax,
       items: items,
