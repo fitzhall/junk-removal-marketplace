@@ -161,7 +161,7 @@ export default function QuoteForm({ companyId, companySlug }: QuoteFormProps = {
 
       // Add timeout wrapper for mobile networks
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 60000) // 60 second timeout for mobile
 
       let response
       try {

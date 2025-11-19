@@ -113,7 +113,7 @@ export default function LoadingSkeleton() {
                 className="h-full bg-gradient-to-r from-green-500 to-emerald-500"
               />
             </div>
-            <p className="text-sm text-gray-500 mt-2">This usually takes 5-10 seconds</p>
+            <p className="text-sm text-gray-500 mt-2">This usually takes 5-15 seconds (up to 30s on mobile)</p>
           </div>
 
           {/* Fun Facts */}
