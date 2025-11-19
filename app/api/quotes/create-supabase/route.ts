@@ -205,24 +205,76 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // BYPASSING DATABASE COMPLETELY - Schema is broken
-    // Just return the pricing without saving
-    console.log('BYPASSING DATABASE - Schema issues')
+    // Save quote to database
+    const quoteId = `quote_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
-    const quote = {
-      id: `demo_${Date.now()}`,
-      status: 'new',
-      customer_name: customerInfo.name || 'Demo User',
-      customer_email: customerInfo.email || 'demo@example.com',
-      priceMin,
-      priceMax,
-      created_at: new Date().toISOString()
+    console.log('Saving quote to database...')
+
+    const { data: quote, error: quoteError } = await supabase
+      .from('Quote')
+      .insert({
+        id: quoteId,
+        customerName: customerInfo.name || null,
+        customerEmail: customerInfo.email || null,
+        customerPhone: customerInfo.phone || null,
+        pickupAddress: location.address || null,
+        pickupZip: location.zipCode || null,
+        pickupCity: location.city || null,
+        pickupState: location.state || null,
+        photoUrls: uploadedPhotoUrls.length > 0 ? uploadedPhotoUrls : null,
+        priceRangeMin: priceMin,
+        priceRangeMax: priceMax,
+        status: 'PENDING',
+        source: companyId ? 'white_label' : 'direct',
+        companyId: companyId || null,
+        aiAnalysis: {
+          items: items,
+          jobDetails: jobDetails,
+          pricingNotes: pricingNotes,
+          estimatedTruckLoads: estimatedTruckLoads,
+          pricingConfidence: pricingConfidence
+        }
+      })
+      .select()
+      .single()
+
+    if (quoteError) {
+      console.error('Database save error:', quoteError)
+      // Continue anyway with demo quote for now
+      const demoQuote = {
+        id: quoteId,
+        priceMin,
+        priceMax
+      }
+      console.warn('Using demo quote due to DB error')
+    } else {
+      console.log('✅ Quote saved to database:', quote.id)
+
+      // Save items to QuoteItem table
+      if (items.length > 0) {
+        const quoteItems = items.map((item, index) => ({
+          id: `${quoteId}_item_${index}`,
+          quoteId: quoteId,
+          itemType: item.type,
+          quantity: item.quantity,
+          aiConfidence: item.confidence ? item.confidence / 100 : null,
+          requiresSpecialHandling: item.requiresSpecialHandling || false
+        }))
+
+        const { error: itemsError } = await supabase
+          .from('QuoteItem')
+          .insert(quoteItems)
+
+        if (itemsError) {
+          console.error('Failed to save quote items:', itemsError)
+        } else {
+          console.log(`✅ Saved ${quoteItems.length} items`)
+        }
+      }
     }
 
-    console.log('Generated demo quote:', quote.id)
-
-    // SKIP provider assignment for now
-    if (false && companyId) {
+    // Provider assignment for white-label
+    if (companyId && quote) {
       console.log('White-label quote - finding provider for company:', companyId)
 
       // Find provider associated with this company
@@ -273,7 +325,7 @@ export async function POST(request: NextRequest) {
     // Return response
     return NextResponse.json({
       success: true,
-      id: quote.id,
+      id: quoteId,
       priceMin: priceMin,
       priceMax: priceMax,
       items: items,
@@ -284,7 +336,7 @@ export async function POST(request: NextRequest) {
       confidence: pricingConfidence,
       pricingNotes: pricingNotes,
       pricingMethod: jobDetails?.jobSize ? 'rules_based' : 'vision_api_fallback',
-      message: 'Demo Mode: Quote calculated! (Database saving disabled)'
+      saved: !quoteError
     })
 
   } catch (error: any) {
