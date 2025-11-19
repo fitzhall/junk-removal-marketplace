@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
   })
 
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     const formData = await request.formData()
 
     // Get photos
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create quote in Supabase
+    // Create quote in Supabase - MINIMAL fields only to avoid schema errors
     const { data: quote, error: quoteError } = await supabase
       .from('quotes')
       .insert({
@@ -152,26 +152,11 @@ export async function POST(request: NextRequest) {
         service_zip: location.zipCode || null,
         service_city: location.city || null,
         service_state: location.state || null,
-        preferred_date: customerInfo.preferredDate || null,
-        preferred_time: customerInfo.preferredTime || null,
-        urgency: customerInfo.isUrgent ? 'high' : 'normal',
-        items: items,
-        photos: uploadedPhotoUrls,
         price_min: priceMin,
         price_max: priceMax,
-        estimated_value: Math.round((priceMin + priceMax) / 2),
-        source: companyId ? 'white_label' : 'direct',
-        metadata: {
-          companyId: companyId,
-          companyName: companyName,
-          domain: request.headers.get('host'),
-          jobDetails: jobDetails,
-          pricingBreakdown: pricingBreakdown,
-          estimatedTruckLoads: estimatedTruckLoads,
-          pricingConfidence: pricingConfidence,
-          pricingNotes: pricingNotes,
-          pricingMethod: jobDetails?.jobSize ? 'rules_based' : 'vision_api_fallback'
-        }
+        source: companyId ? 'white_label' : 'direct'
+        // Removed: metadata, items, photos, urgency, preferred_date, preferred_time
+        // These fields may not exist in the database
       })
       .select()
       .single()
