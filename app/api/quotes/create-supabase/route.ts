@@ -88,19 +88,13 @@ export async function POST(request: NextRequest) {
             type: type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' '), // Changed from 'name' to 'type'
             quantity: 1,
             category: type,
-            requiresSpecialHandling: jobDetails.specialHandling.includes(type) // Changed to match ItemEditor
+            requiresSpecialHandling: jobDetails.specialHandling.includes(type), // Changed to match ItemEditor
+            confidence: 100  // Manual selections have 100% confidence
           }))
 
-          // Add photo-based item if photos were provided
-          if (photos.length > 0) {
-            items.push({
-              type: `Photos (${photos.length} uploaded)`,
-              quantity: photos.length,
-              category: 'photos',
-              requiresSpecialHandling: false,
-              confidence: 100
-            })
-          }
+          // Note: Not adding photos as items since AI isn't analyzing them
+          // This prevents confusing "Photos (2 uploaded)" in the items list
+          console.log(`Note: ${photos.length} photos uploaded but not analyzed (using job details for pricing)`)
 
           console.log('Rules-based pricing calculated:', {
             min: priceMin,
@@ -153,8 +147,28 @@ export async function POST(request: NextRequest) {
         const fallback = getFallbackPricing()
         priceMin = fallback.priceMin
         priceMax = fallback.priceMax
-        items = [{ type: 'General Items', quantity: photos.length, category: 'general', requiresSpecialHandling: false }]
-        pricingNotes = ['Using standard pricing estimate']
+
+        // When AI fails but we have job details, use those
+        if (jobDetails && jobDetails.itemTypes && jobDetails.itemTypes.length > 0) {
+          items = jobDetails.itemTypes.map(type => ({
+            type: type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' '),
+            quantity: 1,
+            category: type,
+            requiresSpecialHandling: jobDetails.specialHandling.includes(type),
+            confidence: 0  // 0% confidence since AI couldn't analyze
+          }))
+          pricingNotes = ['AI analysis unavailable - pricing based on selected categories']
+        } else {
+          // No job details either, use generic items
+          items = [{
+            type: 'Miscellaneous Items (AI analysis unavailable)',
+            quantity: photos.length,
+            category: 'general',
+            requiresSpecialHandling: false,
+            confidence: 0
+          }]
+          pricingNotes = ['Using standard pricing estimate (AI unavailable)']
+        }
       }
     }
 

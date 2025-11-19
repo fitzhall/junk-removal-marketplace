@@ -21,14 +21,26 @@ interface PricingBreakdownProps {
     laborHours: string
     locationMultiplier: number
   }
-  truckLoads?: string
+  truckLoads?: string | number  // Accept both string and number
   showDetails?: boolean
 }
 
 export default function PricingBreakdown({ breakdown, truckLoads, showDetails = true }: PricingBreakdownProps) {
   if (!breakdown || !showDetails) return null
 
-  const getTruckLoadDisplay = (loads: string) => {
+  const getTruckLoadDisplay = (loads: string | number) => {
+    // Handle numeric input (from the new pricing engine)
+    if (typeof loads === 'number') {
+      if (loads <= 0.25) return '¼ Truck'
+      if (loads <= 0.5) return '½ Truck'
+      if (loads <= 0.75) return '¾ Truck'
+      if (loads <= 1) return 'Full Truck'
+      if (loads <= 1.5) return '1½ Trucks'
+      if (loads <= 2) return '2 Trucks'
+      return `${Math.ceil(loads)} Trucks`
+    }
+
+    // Handle string input (legacy format)
     const loadMap: Record<string, string> = {
       'QUARTER': '¼ Truck',
       'HALF': '½ Truck',
@@ -36,7 +48,7 @@ export default function PricingBreakdown({ breakdown, truckLoads, showDetails = 
       'FULL': 'Full Truck',
     }
 
-    if (loads.includes('_TRUCKS')) {
+    if (typeof loads === 'string' && loads.includes('_TRUCKS')) {
       const num = loads.split('_')[0]
       return `${num} Trucks`
     }

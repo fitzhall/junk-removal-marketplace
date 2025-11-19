@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import imageCompression from 'browser-image-compression'
 import PhotoUpload from './PhotoUpload'
@@ -76,6 +76,11 @@ export default function QuoteForm() {
     setJobDetails(details)
     setStep(3)
   }
+
+  // Memoized callback for ItemEditor to prevent infinite loop
+  const handleItemUpdate = useCallback((updatedItems: any[]) => {
+    setQuote(prevQuote => prevQuote ? { ...prevQuote, items: updatedItems } : null)
+  }, [])
 
   const handleCustomerInfoSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -607,9 +612,7 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
           >
             <ItemEditor
               items={quote.items || []}
-              onUpdate={(updatedItems) => {
-                setQuote({ ...quote, items: updatedItems })
-              }}
+              onUpdate={handleItemUpdate}
               onConfirm={() => {
                 setShowItemEditor(false)
                 setStep(5)
@@ -668,7 +671,9 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
                 className="mb-8"
               >
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-semibold text-lg">AI Detected Items:</h3>
+                  <h3 className="font-semibold text-lg">
+                    {quote.items.some(item => item.confidence === 0) ? 'Selected Items:' : 'AI Detected Items:'}
+                  </h3>
                   <button
                     onClick={() => setShowItemEditor(true)}
                     className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
@@ -695,7 +700,7 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
                         )}
                       </div>
                       <div className="flex items-center gap-4">
-                        {item.confidence !== undefined && (
+                        {item.confidence !== undefined && item.confidence > 0 && (
                           <div className="flex items-center gap-2">
                             <div className="w-20 bg-gray-200 rounded-full h-2">
                               <div
@@ -716,14 +721,26 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
                             </span>
                           </div>
                         )}
+                        {item.confidence === 0 && (
+                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                            Manual Selection
+                          </span>
+                        )}
                         <span className="text-gray-600 font-medium">Qty: {item.quantity}</span>
                       </div>
                     </motion.div>
                   ))}
                 </div>
-                <p className="text-sm text-gray-500 mt-3">
-                  Confidence score indicates AI detection accuracy
-                </p>
+                {quote.items.some(item => item.confidence && item.confidence > 0) && (
+                  <p className="text-sm text-gray-500 mt-3">
+                    Confidence score indicates AI detection accuracy
+                  </p>
+                )}
+                {quote.items.every(item => !item.confidence || item.confidence === 0) && (
+                  <p className="text-sm text-gray-500 mt-3">
+                    Items based on your selections - adjust quantities as needed
+                  </p>
+                )}
               </motion.div>
             )}
 
