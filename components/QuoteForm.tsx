@@ -139,7 +139,12 @@ export default function QuoteForm() {
       formData.append('customerInfo', JSON.stringify(customerInfo))
       formData.append('jobDetails', JSON.stringify(jobDetails))
 
-      console.log('Submitting quote request...')
+      console.log('Submitting quote request with data:', {
+        location,
+        customerInfo,
+        jobDetails,
+        photoCount: compressedPhotos.length
+      })
 
       // Add timeout wrapper for mobile networks
       const controller = new AbortController()
@@ -675,7 +680,8 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
               >
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="font-semibold text-lg">
-                    {quote.items.some(item => item.confidence === 0) ? 'Selected Items:' : 'AI Detected Items:'}
+                    {quote.items.every(item => item.confidence === 100 || item.confidence === 0) ?
+                      'Items for Removal:' : 'AI Detected Items:'}
                   </h3>
                   <button
                     onClick={() => setShowItemEditor(true)}
@@ -726,7 +732,12 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
                         )}
                         {item.confidence === 0 && (
                           <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-                            Manual Selection
+                            {item.category === 'photos' ? 'Not Analyzed' : 'Manual Selection'}
+                          </span>
+                        )}
+                        {item.confidence === 100 && (
+                          <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">
+                            From Selection
                           </span>
                         )}
                         <span className="text-gray-600 font-medium">Qty: {item.quantity}</span>

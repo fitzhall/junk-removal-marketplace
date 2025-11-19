@@ -51,9 +51,28 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse form data
-    const location = JSON.parse(formData.get('location') as string || '{}')
-    const customerInfo = JSON.parse(formData.get('customer') as string || formData.get('customerInfo') as string || '{}')
-    const jobDetails: JobDetails = JSON.parse(formData.get('jobDetails') as string || '{}')
+    const locationRaw = formData.get('location') as string
+    const customerRaw = formData.get('customer') as string || formData.get('customerInfo') as string
+    const jobDetailsRaw = formData.get('jobDetails') as string
+
+    console.log('Raw form data received:', {
+      location: locationRaw,
+      customer: customerRaw,
+      jobDetails: jobDetailsRaw,
+      photoCount: photos.length
+    })
+
+    const location = JSON.parse(locationRaw || '{}')
+    const customerInfo = JSON.parse(customerRaw || '{}')
+    const jobDetails: JobDetails = JSON.parse(jobDetailsRaw || '{}')
+
+    console.log('Parsed data:', {
+      location,
+      customerInfo,
+      jobDetails,
+      hasPhotos: photos.length > 0,
+      hasJobDetails: jobDetails && jobDetails.jobSize
+    })
 
     // Get company ID from header (white-label) or form data (widget)
     const companyId = companyIdFromHeader || formData.get('companyId') as string || null
@@ -83,18 +102,40 @@ export async function POST(request: NextRequest) {
           pricingConfidence = pricingResult.confidence
           pricingNotes = pricingResult.notes
 
-          // Convert job details to items for storage
-          items = jobDetails.itemTypes.map(type => ({
-            type: type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' '), // Changed from 'name' to 'type'
-            quantity: 1,
-            category: type,
-            requiresSpecialHandling: jobDetails.specialHandling.includes(type), // Changed to match ItemEditor
-            confidence: 100  // Manual selections have 100% confidence
-          }))
+          // If photos were uploaded, indicate they couldn't be analyzed
+          if (photos.length > 0) {
+            items = [{
+              type: `Unable to analyze ${photos.length} photo${photos.length > 1 ? 's' : ''}`,
+              quantity: photos.length,
+              category: 'photos',
+              requiresSpecialHandling: false,
+              confidence: 0
+            }]
 
-          // Note: Not adding photos as items since AI isn't analyzing them
-          // This prevents confusing "Photos (2 uploaded)" in the items list
-          console.log(`Note: ${photos.length} photos uploaded but not analyzed (using job details for pricing)`)
+            // Also add job details items
+            jobDetails.itemTypes.forEach(type => {
+              items.push({
+                type: type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' '),
+                quantity: 1,
+                category: type,
+                requiresSpecialHandling: jobDetails.specialHandling.includes(type),
+                confidence: 100
+              })
+            })
+
+            pricingNotes.push('Photo analysis unavailable - pricing based on selected categories')
+          } else {
+            // No photos, just use job details
+            items = jobDetails.itemTypes.map(type => ({
+              type: type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' '),
+              quantity: 1,
+              category: type,
+              requiresSpecialHandling: jobDetails.specialHandling.includes(type),
+              confidence: 100
+            }))
+          }
+
+          console.log(`Photos: ${photos.length}, Items from job details: ${jobDetails.itemTypes.length}`)
 
           console.log('Rules-based pricing calculated:', {
             min: priceMin,
