@@ -86,80 +86,11 @@ export async function POST(request: NextRequest) {
     let pricingConfidence = 50
     let pricingNotes: string[] = []
 
-    // Use rules-based pricing if job details are provided
-    if (jobDetails && jobDetails.jobSize) {
-      console.log('Using rules-based pricing engine with job details:', jobDetails)
+    // STEP 1: Try Vision API FIRST if photos are provided
+    let visionApiSuccess = false
 
-      try {
-        const pricingResult = calculatePricing(jobDetails)
-
-        // Validate the pricing makes sense
-        if (validatePricing(jobDetails, pricingResult)) {
-          priceMin = pricingResult.priceMin
-          priceMax = pricingResult.priceMax
-          pricingBreakdown = pricingResult.breakdown
-          estimatedTruckLoads = pricingResult.estimatedTruckLoads
-          pricingConfidence = pricingResult.confidence
-          pricingNotes = pricingResult.notes
-
-          // If photos were uploaded, indicate they couldn't be analyzed
-          if (photos.length > 0) {
-            items = [{
-              type: `Unable to analyze ${photos.length} photo${photos.length > 1 ? 's' : ''}`,
-              quantity: photos.length,
-              category: 'photos',
-              requiresSpecialHandling: false,
-              confidence: 0
-            }]
-
-            // Also add job details items
-            jobDetails.itemTypes.forEach(type => {
-              items.push({
-                type: type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' '),
-                quantity: 1,
-                category: type,
-                requiresSpecialHandling: jobDetails.specialHandling.includes(type),
-                confidence: 100
-              })
-            })
-
-            pricingNotes.push('Photo analysis unavailable - pricing based on selected categories')
-          } else {
-            // No photos, just use job details
-            items = jobDetails.itemTypes.map(type => ({
-              type: type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' '),
-              quantity: 1,
-              category: type,
-              requiresSpecialHandling: jobDetails.specialHandling.includes(type),
-              confidence: 100
-            }))
-          }
-
-          console.log(`Photos: ${photos.length}, Items from job details: ${jobDetails.itemTypes.length}`)
-
-          console.log('Rules-based pricing calculated:', {
-            min: priceMin,
-            max: priceMax,
-            confidence: pricingConfidence,
-            truckLoads: estimatedTruckLoads
-          })
-        } else {
-          console.warn('Pricing validation failed, using fallback')
-          const fallback = getFallbackPricing()
-          priceMin = fallback.priceMin
-          priceMax = fallback.priceMax
-          pricingNotes = ['Pricing validation failed - showing standard estimate']
-        }
-      } catch (err) {
-        console.error('Rules-based pricing failed:', err)
-        const fallback = getFallbackPricing()
-        priceMin = fallback.priceMin
-        priceMax = fallback.priceMax
-        pricingNotes = ['Pricing calculation error - showing standard estimate']
-      }
-    } else {
-      // Fallback: Try Vision API for backward compatibility
-      console.log('No job details provided, attempting Vision API analysis')
+    if (photos.length > 0) {
+      console.log(`Attempting Vision API analysis for ${photos.length} photos...`)
 
       try {
         const visionService = new VisionAIService()
@@ -174,42 +105,84 @@ export async function POST(request: NextRequest) {
 
         priceMin = analysis.estimatedPrice.min
         priceMax = analysis.estimatedPrice.max
-        // Ensure items have 'type' field, not 'name'
         items = analysis.items.map((item: any) => ({
           type: item.name || item.type || 'Unknown Item',
           quantity: item.quantity || 1,
           category: item.category,
           requiresSpecialHandling: item.specialHandling || item.requiresSpecialHandling || false,
-          confidence: item.confidence
+          confidence: item.confidence || 85  // Default confidence for AI-detected items
         }))
-        pricingNotes = ['Pricing based on photo analysis']
-      } catch (err) {
-        console.log('Vision API failed, using fallback pricing:', err)
-        const fallback = getFallbackPricing()
-        priceMin = fallback.priceMin
-        priceMax = fallback.priceMax
+        pricingNotes = ['AI successfully analyzed photos']
+        visionApiSuccess = true
 
-        // When AI fails but we have job details, use those
-        if (jobDetails && jobDetails.itemTypes && jobDetails.itemTypes.length > 0) {
+        console.log(`Vision API SUCCESS: Found ${items.length} items`)
+      } catch (visionError) {
+        console.log('Vision API failed:', visionError)
+        visionApiSuccess = false
+      }
+    }
+
+    // STEP 2: If Vision API didn't work or no photos, try rules-based pricing
+    if (!visionApiSuccess && jobDetails && jobDetails.jobSize) {
+      console.log('Using rules-based pricing with job details...')
+
+      try {
+        const pricingResult = calculatePricing(jobDetails)
+
+        if (validatePricing(jobDetails, pricingResult)) {
+          priceMin = pricingResult.priceMin
+          priceMax = pricingResult.priceMax
+          pricingBreakdown = pricingResult.breakdown
+          estimatedTruckLoads = pricingResult.estimatedTruckLoads
+          pricingConfidence = pricingResult.confidence
+
+          // Convert job details to items
           items = jobDetails.itemTypes.map(type => ({
             type: type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' '),
             quantity: 1,
             category: type,
             requiresSpecialHandling: jobDetails.specialHandling.includes(type),
-            confidence: 0  // 0% confidence since AI couldn't analyze
+            confidence: 100  // Manual selections
           }))
-          pricingNotes = ['AI analysis unavailable - pricing based on selected categories']
-        } else {
-          // No job details either, use generic items
-          items = [{
-            type: 'Miscellaneous Items (AI analysis unavailable)',
-            quantity: photos.length,
-            category: 'general',
-            requiresSpecialHandling: false,
-            confidence: 0
-          }]
-          pricingNotes = ['Using standard pricing estimate (AI unavailable)']
+
+          if (photos.length > 0 && !visionApiSuccess) {
+            pricingNotes = ['Photos uploaded but AI unavailable - using your selections']
+          } else {
+            pricingNotes = ['Pricing based on your selections']
+          }
+
+          console.log('Rules-based pricing SUCCESS')
         }
+      } catch (rulesError) {
+        console.error('Rules-based pricing failed:', rulesError)
+      }
+    }
+
+    // STEP 3: Ultimate fallback if nothing worked
+    if (items.length === 0) {
+      console.log('Using fallback pricing...')
+      const fallback = getFallbackPricing()
+      priceMin = fallback.priceMin
+      priceMax = fallback.priceMax
+
+      if (photos.length > 0) {
+        items = [{
+          type: 'General Items (Unable to analyze)',
+          quantity: photos.length,
+          category: 'general',
+          requiresSpecialHandling: false,
+          confidence: 0
+        }]
+        pricingNotes = ['Using standard estimate - analysis unavailable']
+      } else {
+        items = [{
+          type: 'Miscellaneous Items',
+          quantity: 1,
+          category: 'general',
+          requiresSpecialHandling: false,
+          confidence: 0
+        }]
+        pricingNotes = ['Using standard estimate']
       }
     }
 

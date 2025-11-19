@@ -648,7 +648,7 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
               </h2>
               <p className="text-gray-600 text-lg">
                 {photos.length > 0 && `${photos.length} photo${photos.length > 1 ? 's' : ''} uploaded • `}
-                {quote.items.some(item => item.confidence && item.confidence > 0) ?
+                {quote.items.some(item => item.confidence && item.confidence > 0 && item.confidence < 100) ?
                   'AI analyzed your items' :
                   'Pricing based on your selections'}
               </p>
@@ -680,8 +680,8 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
               >
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="font-semibold text-lg">
-                    {quote.items.every(item => item.confidence === 100 || item.confidence === 0) ?
-                      'Items for Removal:' : 'AI Detected Items:'}
+                    {quote.items.some(item => item.confidence && item.confidence > 0 && item.confidence < 100) ?
+                      'AI Detected Items:' : 'Items for Removal:'}
                   </h3>
                   <button
                     onClick={() => setShowItemEditor(true)}
@@ -709,7 +709,7 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
                         )}
                       </div>
                       <div className="flex items-center gap-4">
-                        {item.confidence !== undefined && item.confidence > 0 && (
+                        {item.confidence !== undefined && item.confidence > 0 && item.confidence < 100 && (
                           <div className="flex items-center gap-2">
                             <div className="w-20 bg-gray-200 rounded-full h-2">
                               <div
@@ -726,18 +726,18 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
                               item.confidence >= 70 ? 'text-yellow-600' :
                               'text-orange-600'
                             }`}>
-                              {item.confidence}%
+                              AI: {item.confidence}%
                             </span>
                           </div>
                         )}
-                        {item.confidence === 0 && (
-                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-                            {item.category === 'photos' ? 'Not Analyzed' : 'Manual Selection'}
-                          </span>
-                        )}
                         {item.confidence === 100 && (
                           <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">
-                            From Selection
+                            Your Selection
+                          </span>
+                        )}
+                        {item.confidence === 0 && (
+                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                            Not Analyzed
                           </span>
                         )}
                         <span className="text-gray-600 font-medium">Qty: {item.quantity}</span>
