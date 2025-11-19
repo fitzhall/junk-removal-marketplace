@@ -39,33 +39,41 @@ export default function ItemEditor({ items: initialItems, onUpdate, onConfirm }:
   const [newItemType, setNewItemType] = useState('')
   const [showCommonItems, setShowCommonItems] = useState(false)
 
-  useEffect(() => {
-    onUpdate(items)
-  }, [items, onUpdate])
+  // Helper function to update items and notify parent
+  const updateItems = (newItems: Item[]) => {
+    setItems(newItems)
+    onUpdate(newItems)
+  }
 
   const updateQuantity = (index: number, delta: number) => {
     const newItems = [...items]
     newItems[index].quantity = Math.max(1, newItems[index].quantity + delta)
-    setItems(newItems)
+    updateItems(newItems)
   }
 
   const removeItem = (index: number) => {
-    setItems(items.filter((_, i) => i !== index))
+    updateItems(items.filter((_, i) => i !== index))
   }
 
   const addItem = (type: string, category?: string, requiresSpecialHandling?: boolean) => {
+    // Ensure type is valid
+    if (!type || type.trim() === '') {
+      console.warn('Attempted to add item with empty type')
+      return
+    }
+
     const existingIndex = items.findIndex(item =>
-      item.type.toLowerCase() === type.toLowerCase()
+      item.type && item.type.toLowerCase() === type.toLowerCase()
     )
 
     if (existingIndex >= 0) {
       // If item exists, increment quantity
       const newItems = [...items]
       newItems[existingIndex].quantity += 1
-      setItems(newItems)
+      updateItems(newItems)
     } else {
       // Add new item
-      setItems([...items, {
+      updateItems([...items, {
         type,
         quantity: 1,
         confidence: 100, // Manual additions have 100% confidence
@@ -99,7 +107,7 @@ export default function ItemEditor({ items: initialItems, onUpdate, onConfirm }:
       {/* Detected Items List */}
       <div className="space-y-3 mb-6">
         <AnimatePresence>
-          {items.map((item, index) => (
+          {items.filter(item => item && item.type).map((item, index) => (
             <motion.div
               key={`${item.type}-${index}`}
               initial={{ opacity: 0, x: -20 }}
