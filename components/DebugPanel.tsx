@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { BugAntIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
 interface DebugLog {
@@ -14,6 +14,8 @@ export default function DebugPanel() {
   const [isOpen, setIsOpen] = useState(false)
   const [logs, setLogs] = useState<DebugLog[]>([])
   const [showDebug, setShowDebug] = useState(false)
+  const logQueueRef = useRef<DebugLog[]>([])
+  const flushTimeoutRef = useRef<NodeJS.Timeout>()
 
   useEffect(() => {
     // Check if debug mode is enabled
@@ -30,17 +32,17 @@ export default function DebugPanel() {
 
       console.log = (...args) => {
         originalLog(...args)
-        addLog('info', args.join(' '), args[1])
+        queueLog('info', args.join(' '), args[1])
       }
 
       console.error = (...args) => {
         originalError(...args)
-        addLog('error', args.join(' '), args[1])
+        queueLog('error', args.join(' '), args[1])
       }
 
       console.warn = (...args) => {
         originalWarn(...args)
-        addLog('warning', args.join(' '), args[1])
+        queueLog('warning', args.join(' '), args[1])
       }
 
       // Cleanup
@@ -48,17 +50,34 @@ export default function DebugPanel() {
         console.log = originalLog
         console.error = originalError
         console.warn = originalWarn
+        if (flushTimeoutRef.current) {
+          clearTimeout(flushTimeoutRef.current)
+        }
       }
     }
   }, [])
 
-  const addLog = (type: DebugLog['type'], message: string, data?: any) => {
-    setLogs(prev => [...prev, {
+  const queueLog = (type: DebugLog['type'], message: string, data?: any) => {
+    // Queue the log to avoid setState during render
+    logQueueRef.current.push({
       timestamp: new Date().toLocaleTimeString(),
       type,
       message,
       data
-    }].slice(-50)) // Keep last 50 logs
+    })
+
+    // Schedule a flush after the current render cycle
+    if (flushTimeoutRef.current) {
+      clearTimeout(flushTimeoutRef.current)
+    }
+    flushTimeoutRef.current = setTimeout(flushQueue, 0)
+  }
+
+  const flushQueue = () => {
+    if (logQueueRef.current.length > 0) {
+      setLogs(prev => [...prev, ...logQueueRef.current].slice(-50)) // Keep last 50 logs
+      logQueueRef.current = []
+    }
   }
 
   if (!showDebug) return null

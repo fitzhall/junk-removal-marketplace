@@ -328,7 +328,7 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
         </div>
       </div>
 
-      <AnimatePresence mode="wait">
+      <AnimatePresence>
         {/* Step 1: Photo Upload */}
         {step === 1 && (
           <motion.div
@@ -642,7 +642,10 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
                 Your Instant Quote is Ready!
               </h2>
               <p className="text-gray-600 text-lg">
-                Based on AI analysis of your {photos.length} photo{photos.length > 1 ? 's' : ''}
+                {photos.length > 0 && `${photos.length} photo${photos.length > 1 ? 's' : ''} uploaded • `}
+                {quote.items.some(item => item.confidence && item.confidence > 0) ?
+                  'AI analyzed your items' :
+                  'Pricing based on your selections'}
               </p>
             </div>
 
