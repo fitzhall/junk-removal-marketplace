@@ -76,13 +76,11 @@ function ThankYouContent() {
             </div>
           )}
 
-          {/* Expected Time */}
-          <div className="mt-6 inline-flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-full px-6 py-3">
-            <svg className="w-5 h-5 text-blue-600 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+          {/* Success Message */}
+          <div className="mt-6 inline-flex items-center gap-2 bg-green-50 border border-green-200 rounded-full px-6 py-3">
+            <CheckCircleIcon className="w-5 h-5 text-green-600" />
             <span className="text-sm font-medium text-gray-900">
-              Your bids usually arrive in 12–22 minutes
+              We found local haulers who can pick up as early as today
             </span>
           </div>
         </motion.div>
@@ -159,8 +157,8 @@ function ThankYouContent() {
                 <span className="text-green-600 font-bold">1</span>
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 mb-1">Providers Review Your Request</h3>
-                <p className="text-gray-600">Local licensed haulers in your area will see your quote and respond with bids.</p>
+                <h3 className="font-semibold text-gray-900 mb-1">Text or Call Us</h3>
+                <p className="text-gray-600">Send us photos for the most accurate quote, or call to discuss your needs.</p>
               </div>
             </div>
 
@@ -169,8 +167,8 @@ function ThankYouContent() {
                 <span className="text-green-600 font-bold">2</span>
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 mb-1">Compare Bids & Choose</h3>
-                <p className="text-gray-600">You'll receive bids usually within 12-22 minutes. Compare prices and reviews.</p>
+                <h3 className="font-semibold text-gray-900 mb-1">Confirm Your Quote</h3>
+                <p className="text-gray-600">We'll finalize details and confirm the exact price based on your items.</p>
               </div>
             </div>
 
