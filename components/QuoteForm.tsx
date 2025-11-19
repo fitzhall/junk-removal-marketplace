@@ -286,20 +286,25 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
 
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Helper Components */}
-      <TestMode onSelectTestImages={(files) => {
-        setPhotos(files)
-        if (files.length > 0 && step === 1) {
-          // Auto-advance to step 2 when test images are loaded
-          setStep(2)
-        }
-      }} />
-      <MobileHandoff />
-      <DebugPanel />
-      <ApiTester />
+      {/* Helper Components - Only show in development */}
+      {process.env.NODE_ENV === 'development' && (
+        <>
+          <TestMode onSelectTestImages={(files) => {
+            setPhotos(files)
+            if (files.length > 0 && step === 1) {
+              // Auto-advance to step 2 when test images are loaded
+              setStep(2)
+            }
+          }} />
+          <MobileHandoff />
+          <DebugPanel />
+          <ApiTester />
+        </>
+      )}
       <ErrorDisplay error={error} onClose={() => setError(null)} />
 
-      {/* Progress Steps */}
+      {/* Progress Steps - Hide when showing ItemEditor */}
+      {!showItemEditor && (
       <div className="mb-12">
         <div className="flex items-center justify-between">
           {steps.map((s, index) => (
@@ -345,6 +350,7 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
           ))}
         </div>
       </div>
+      )}
 
       <AnimatePresence>
         {/* Step 1: Photo Upload */}
@@ -516,7 +522,7 @@ Full response: ${JSON.stringify(data).substring(0, 200)}...`
         )}
 
         {/* Step 4: Customer Info */}
-        {step === 4 && !loading && (
+        {step === 4 && !loading && !showItemEditor && (
           <motion.form
             key="step4"
             initial={{ opacity: 0, x: 20 }}

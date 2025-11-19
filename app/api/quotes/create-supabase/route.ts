@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
           quantity: item.quantity || 1,
           category: item.category,
           requiresSpecialHandling: item.specialHandling || item.requiresSpecialHandling || false,
-          confidence: item.confidence || 85  // Default confidence for AI-detected items
+          confidence: Math.round((item.confidence || 0.85) * 100)  // Convert to whole number percentage
         }))
 
         // Apply job details modifiers to Vision API pricing
